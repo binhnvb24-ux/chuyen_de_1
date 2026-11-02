@@ -196,6 +196,9 @@ function ensure_upgraded_schema() {
 // Thực thi kiểm tra cấu trúc CSDL ngay khi nạp auth.php
 ensure_upgraded_schema();
 
+// Nạp Engine xử lý 5 bài toán cốt lõi (Ghép/Tách sân, Trùng lịch 30p, Khóa HOLD 10p, Giá động, Đặt cố định & Xả sân)
+require_once __DIR__ . '/booking_engine.php';
+
 // ----------------------------------------------------------------------------
 // PHẦN 5: HÀM ĐỌC & LƯU THÔNG SỐ CẤU HÌNH HỆ THỐNG (SYSTEM SETTINGS)
 // ----------------------------------------------------------------------------

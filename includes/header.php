@@ -29,7 +29,7 @@ if (isset($pdo)) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Chakra+Petch:ital,wght@0,600;0,700;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="<?=$base?>assets/css/style.css">
+  <link rel="stylesheet" href="<?=$base?>assets/css/style.css?v=<?=filemtime(__DIR__ . '/../assets/css/style.css')?>">
 </head>
 <body class="user-portal">
 <!-- Thanh điều hướng thể thao trên cùng (Athletic Daylight Topbar) -->
@@ -112,9 +112,17 @@ if (isset($pdo)) {
 
   <!-- Bắt đầu vùng nội dung chính của trang con & hiển thị thông báo Flash -->
   <main class="user-main">
-    <?php if(!empty($_SESSION['flash'])): [$t,$m]=$_SESSION['flash']; unset($_SESSION['flash']); ?>
-      <div class="alert <?=$t?>">
-        <span class="alert-icon"><?=$t==='ok'?'✔':'⚠️'?></span>
-        <div class="alert-text"><?=e($m)?></div>
+    <?php if (!empty($_SESSION['flash'])):
+        [$t, $m] = $_SESSION['flash'];
+        unset($_SESSION['flash']);
+        $isCancelAlert = ($t === 'cancel' || $t === 'err' || mb_stripos($m, 'hủy') !== false);
+        $alertClass    = $isCancelAlert ? 'cancel' : $t;
+        $alertStyle    = $isCancelAlert
+            ? 'background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-left:4px solid #ef4444;'
+            : '';
+    ?>
+      <div class="alert <?=$alertClass?>" style="<?=$alertStyle?>">
+        <span class="alert-icon"><?=$isCancelAlert ? '❌' : ($t === 'ok' ? '✔' : '⚠️')?></span>
+        <div class="alert-text" style="font-weight:600"><?=e($m)?></div>
       </div>
     <?php endif; ?>

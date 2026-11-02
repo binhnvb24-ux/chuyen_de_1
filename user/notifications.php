@@ -50,21 +50,50 @@ include '../includes/header.php';
     </div>
   <?php else: ?>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <?php foreach($rows as $r): ?>
-        <div class="bk" style="<?=$r['is_read']?'border-color:#e2e8f0;':'background:#ecfdf5;border-color:#a7f3d0;'?>">
-          <span style="width:38px;height:38px;border-radius:10px;background:<?=$r['is_read']?'#f1f5f9':'#d1fae5'?>;display:grid;place-items:center;font-size:18px;flex-shrink:0">
-            <?=$r['is_read']?'📨':'🔔'?>
+      <?php foreach ($rows as $r):
+          // Kiểm tra nếu là thông báo hủy kèo / hủy sân / báo nghỉ để hiển thị nền đỏ nhạt
+          $isCancelNoti = (
+              mb_stripos($r['message'], 'hủy') !== false ||
+              mb_stripos($r['message'], 'rút khỏi') !== false ||
+              mb_stripos($r['message'], 'báo nghỉ') !== false ||
+              mb_strpos($r['message'], '❌') !== false ||
+              mb_strpos($r['message'], '↩') !== false
+          );
+
+          if ($isCancelNoti) {
+              $cardStyle = $r['is_read']
+                  ? 'background:#fff5f5;border-color:#fecaca;border-left:4px solid #f87171;'
+                  : 'background:#fef2f2;border-color:#fca5a5;border-left:4px solid #ef4444;';
+              $iconBg    = '#fee2e2';
+              $iconChar  = '❌';
+              $textColor = '#991b1b';
+              $tagClass  = 'red';
+              $tagText   = $r['is_read'] ? 'Đã hủy' : 'Thông báo hủy';
+          } else {
+              $cardStyle = $r['is_read']
+                  ? 'border-color:#e2e8f0;'
+                  : 'background:#ecfdf5;border-color:#a7f3d0;border-left:4px solid #10b981;';
+              $iconBg    = $r['is_read'] ? '#f1f5f9' : '#d1fae5';
+              $iconChar  = $r['is_read'] ? '📨' : '🔔';
+              $textColor = $r['is_read'] ? '#334155' : '#065f46';
+              $tagClass  = 'green';
+              $tagText   = 'Mới';
+          }
+      ?>
+        <div class="bk" style="<?=$cardStyle?>">
+          <span style="width:38px;height:38px;border-radius:10px;background:<?=$iconBg?>;display:grid;place-items:center;font-size:18px;flex-shrink:0">
+            <?=$iconChar?>
           </span>
           <div style="flex:1">
-            <div style="font-size:14px;color:<?=$r['is_read']?'#334155':'#065f46'?>;font-weight:<?=$r['is_read']?'500':'700'?>">
+            <div style="font-size:14px;color:<?=$textColor?>;font-weight:<?=$r['is_read'] ? '600' : '700'?>">
               <?=e($r['message'])?>
             </div>
-            <small style="color:#94a3b8;font-size:11.5px;margin-top:3px">
+            <small style="color:<?=$isCancelNoti ? '#dc2626' : '#94a3b8'?>;font-size:11.5px;margin-top:3px">
               🕒 <?=date('H:i - d/m/Y', strtotime($r['created_at']))?>
             </small>
           </div>
-          <?php if(!$r['is_read']): ?>
-            <span class="tag green" style="font-size:11px">Mới</span>
+          <?php if (!$r['is_read'] || $isCancelNoti): ?>
+            <span class="tag <?=$tagClass?>" style="font-size:11px"><?=$tagText?></span>
           <?php endif; ?>
         </div>
       <?php endforeach; ?>

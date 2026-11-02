@@ -48,10 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newBkStatus = ($autoConfirm && $bk['status'] === 'pending') ? 'confirmed' : $bk['status'];
 
     $pdo->beginTransaction();
+    // Cập nhật thanh toán và xóa thời hạn giữ chỗ tạm thời (hold_expires_at = NULL)
     $pdo->prepare("UPDATE payments SET status='paid', transaction_code=?, paid_at=NOW() WHERE booking_id=?")
         ->execute([$txn, $bid]);
-    $pdo->prepare("UPDATE bookings SET status=? WHERE id=?")
+    $pdo->prepare("UPDATE bookings SET status=?, hold_expires_at=NULL WHERE id=?")
         ->execute([$newBkStatus, $bid]);
+
+    // Nếu đơn này thuộc Hợp đồng lịch cố định hàng tuần, xác nhận luôn các buổi trong hợp đồng
+    if (!empty($bk['recurring_contract_id'])) {
+      $pdo->prepare("UPDATE bookings SET status='confirmed', hold_expires_at=NULL WHERE recurring_contract_id=? AND status='pending'")
+          ->execute([$bk['recurring_contract_id']]);
+      $pdo->prepare("UPDATE payments p INNER JOIN bookings b ON b.id=p.booking_id SET p.status='paid', p.transaction_code=?, p.paid_at=NOW() WHERE b.recurring_contract_id=?")
+          ->execute([$txn, $bk['recurring_contract_id']]);
+    }
+
     notify($u['id'], "Thanh toán Demo thành công đơn #$bid ({$bk['fname']}). Mã GD: $txn. Vé điện tử QR đã sẵn sàng!");
     $pdo->commit();
 
@@ -101,6 +111,42 @@ include '../includes/header.php';
     <a href="my-bookings.php" class="btn sm outline" style="border-color:#fff;color:#fff !important">← Lịch đặt của tôi</a>
   </div>
 </div>
+
+<!-- Đồng hồ đếm ngược 10 phút giữ chỗ tạm thời (HOLD Countdown) -->
+<?php if ($bk['status'] === 'pending' && !empty($bk['hold_expires_at']) && $bk['pay_status'] !== 'paid'):
+  $remainSec = max(0, strtotime($bk['hold_expires_at']) - time());
+?>
+  <div style="background:linear-gradient(90deg,#fef3c7,#fffbeb);border:2px solid #f59e0b;border-radius:14px;padding:14px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div>
+      <b style="color:#92400e;font-size:15px">⏳ ĐANG GIỮ CHỖ TẠM THỜI (HOLD LOCK - CHỐNG ĐẶT TRÙNG)</b>
+      <small style="color:#b45309;margin:2px 0 0">
+        Sân (cùng các sân Cha/Con liên quan) đang được khóa riêng cho bạn. Nếu quá 10 phút chưa thanh toán, hệ thống sẽ tự động giải phóng sân.
+      </small>
+    </div>
+    <div style="background:#92400e;color:#fef3c7;font-family:var(--font-sport);font-size:22px;font-weight:800;padding:8px 18px;border-radius:10px;letter-spacing:1px" id="holdCountdownBox" data-sec="<?=$remainSec?>">
+      <?=sprintf('%02d:%02d', intdiv($remainSec, 60), $remainSec % 60)?>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var box = document.getElementById('holdCountdownBox');
+      if (!box) return;
+      var sec = parseInt(box.getAttribute('data-sec') || '0', 10);
+      var timer = setInterval(function() {
+        sec--;
+        if (sec <= 0) {
+          clearInterval(timer);
+          box.textContent = 'HẾT HẠN';
+          location.reload();
+          return;
+        }
+        var m = String(Math.floor(sec / 60)).padStart(2, '0');
+        var s = String(sec % 60).padStart(2, '0');
+        box.textContent = m + ':' + s;
+      }, 1000);
+    })();
+  </script>
+<?php endif; ?>
 
 <!-- 4. Vé Đặt Sân Điện Tử kiểu Boarding Pass Sân Vận Động -->
 <div class="sport-ticket">

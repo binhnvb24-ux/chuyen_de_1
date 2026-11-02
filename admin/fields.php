@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('err', 'Sân đã có lịch đặt, không thể xóa. Hãy chuyển sang trạng thái bảo trì.');
         } else {
             $pdo->prepare("DELETE FROM fields WHERE id = ?")->execute([$id]);
+            rebuild_field_conflict_map();
             flash('ok', 'Đã xóa sân thành công.');
         }
 
@@ -86,9 +87,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // -- Xử lý Thêm mới hoặc Cập nhật sân --
     $id = (int)($_POST['id'] ?? 0);
 
-    // Lấy và làm sạch dữ liệu đầu vào
+    // Lấy và làm sạch dữ liệu đầu vào (Bao gồm cả Mã sân & Sân Cha ghép sân)
+    $parent_id = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+    if ($parent_id === $id) {
+        $parent_id = null;
+    }
+
     $d = [
         'name'        => trim($_POST['name'] ?? ''),
+        'pitch_code'  => strtoupper(trim($_POST['pitch_code'] ?? '')),
+        'parent_id'   => $parent_id,
         'type'        => $_POST['type'] ?? '5',
         'address'     => trim($_POST['address'] ?? ''),
         'district'    => trim($_POST['district'] ?? ''),
@@ -123,21 +131,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Cập nhật Database
     if ($id) {
         // Update sân đã có
-        $pdo->prepare("UPDATE fields SET name=?, type=?, address=?, district=?, price_per_hour=?, description=?, status=? WHERE id=?")
-            ->execute([$d['name'], $d['type'], $d['address'], $d['district'], $d['price'], $d['description'], $d['status'], $id]);
+        $pdo->prepare("UPDATE fields SET parent_id=?, pitch_code=?, name=?, type=?, address=?, district=?, price_per_hour=?, description=?, status=? WHERE id=?")
+            ->execute([$d['parent_id'], $d['pitch_code'], $d['name'], $d['type'], $d['address'], $d['district'], $d['price'], $d['description'], $d['status'], $id]);
 
         // Nếu có ảnh mới được tải lên thì cập nhật cột image
         if ($img) {
             $pdo->prepare("UPDATE fields SET image=? WHERE id=?")->execute([$img, $id]);
         }
-        flash('ok', 'Đã cập nhật thông tin sân.');
+        rebuild_field_conflict_map();
+        flash('ok', 'Đã cập nhật thông tin sân và cấu trúc Ghép/Tách sân.');
     } else {
-        // Thêm sân mới (Đã sửa lỗi cú pháp gán ảnh mặc định ở đây)
+        // Thêm sân mới
         $final_img = $img ?: 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=600';
 
-        $pdo->prepare("INSERT INTO fields (name, type, address, district, price_per_hour, description, status, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-            ->execute([$d['name'], $d['type'], $d['address'], $d['district'], $d['price'], $d['description'], $d['status'], $final_img]);
+        $pdo->prepare("INSERT INTO fields (parent_id, pitch_code, name, type, address, district, price_per_hour, description, status, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            ->execute([$d['parent_id'], $d['pitch_code'], $d['name'], $d['type'], $d['address'], $d['district'], $d['price'], $d['description'], $d['status'], $final_img]);
 
+        rebuild_field_conflict_map();
         flash('ok', 'Đã thêm sân mới thành công.');
     }
 
@@ -160,6 +170,8 @@ if (isset($_GET['edit'])) {
 elseif (isset($_GET['new'])) {
     $form = [
         'id'             => 0,
+        'parent_id'      => null,
+        'pitch_code'     => '',
         'name'           => '',
         'type'           => '5',
         'address'        => '',
@@ -170,11 +182,16 @@ elseif (isset($_GET['new'])) {
     ];
 }
 
-// Lấy danh sách tất cả các sân để hiển thị ở bảng (sắp xếp sân mới nhất lên đầu)
-$rows = $pdo->query("SELECT * FROM fields ORDER BY id DESC")->fetchAll();
+// Lấy danh sách tất cả các sân kèm tên Sân Cha (nếu có) để hiển thị ở bảng
+$rows = $pdo->query("
+    SELECT f.*, p.name AS parent_name, p.type AS parent_type, p.pitch_code AS parent_code
+    FROM fields f
+    LEFT JOIN fields p ON p.id = f.parent_id
+    ORDER BY f.type DESC, f.id ASC
+")->fetchAll();
 
 $page = 'fields';
-$title = 'Quản lý sân';
+$title = 'Quản lý sân bóng & Cấu trúc Ghép/Tách sân';
 include '../includes/admin_header.php';
 ?>
 
@@ -189,10 +206,30 @@ include '../includes/admin_header.php';
             <label>Tên sân</label>
             <input name="name" required value="<?= e($form['name']) ?>">
 
-            <label>Loại sân</label>
-            <select name="type">
-                <?php foreach (['5' => 'Sân 5', '7' => 'Sân 7', '11' => 'Sân 11'] as $k => $v): ?>
-                    <option value="<?= $k ?>" <?= $form['type'] == $k ? 'selected' : '' ?>><?= $v ?></option>
+            <div class="two" style="margin-bottom:0">
+                <div>
+                    <label>Mã sân định danh (VD: 5A, 5B, 7A, 11A)</label>
+                    <input name="pitch_code" placeholder="VD: 5A, 7A, 11A" value="<?= e($form['pitch_code'] ?? '') ?>">
+                </div>
+                <div>
+                    <label>Loại sân</label>
+                    <select name="type">
+                        <?php foreach (['5' => 'Sân 5 người', '7' => 'Sân 7 người', '11' => 'Sân 11 người'] as $k => $v): ?>
+                            <option value="<?= $k ?>" <?= $form['type'] == $k ? 'selected' : '' ?>><?= $v ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <label>🔗 Ghép vào Sân Cha (Sân 5 ghép thành Sân 7 / Sân 7 ghép thành Sân 11)</label>
+            <select name="parent_id">
+                <option value="">-- Không thuộc sân nào (Sân độc lập hoặc Sân gốc 11 người) --</option>
+                <?php foreach ($rows as $pItem): ?>
+                    <?php if ((int)$pItem['id'] !== (int)$form['id'] && in_array($pItem['type'], ['7', '11'])): ?>
+                        <option value="<?= $pItem['id'] ?>" <?= ($form['parent_id'] ?? null) == $pItem['id'] ? 'selected' : '' ?>>
+                            🏟 [Sân <?= $pItem['type'] ?> - <?= e($pItem['pitch_code'] ?: ('#' . $pItem['id'])) ?>] <?= e($pItem['name']) ?>
+                        </option>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </select>
 
@@ -202,7 +239,7 @@ include '../includes/admin_header.php';
             <label>Quận/Huyện</label>
             <input name="district" value="<?= e($form['district']) ?>">
 
-            <label>Giá thuê / giờ (đ)</label>
+            <label>Giá thuê cơ sở / giờ (đ)</label>
             <input type="number" min="1000" step="1000" name="price" required value="<?= e($form['price_per_hour']) ?>">
 
             <label>Mô tả</label>
@@ -218,8 +255,8 @@ include '../includes/admin_header.php';
             <input type="file" name="image" accept="image/*">
             <br><br>
 
-            <button class="btn">Lưu</button>
-            <a href="fields.php">Hủy</a>
+            <button class="btn">💾 Lưu thông tin sân</button>
+            <a class="btn sm red" href="fields.php">Hủy</a>
         </form>
     </div>
 <?php else: ?>
@@ -236,10 +273,11 @@ include '../includes/admin_header.php';
                 <table>
                     <tr>
                         <th>Ảnh</th>
-                        <th>Tên sân</th>
+                        <th>Mã & Tên sân</th>
                         <th>Loại</th>
+                        <th>Sân Cha (Ghép sân)</th>
                         <th>Địa chỉ</th>
-                        <th>Giá/giờ</th>
+                        <th>Giá cơ sở/giờ</th>
                         <th>Trạng thái</th>
                         <th>Hành động</th>
                     </tr>
@@ -248,10 +286,24 @@ include '../includes/admin_header.php';
                             <td>
                                 <img src="<?= e(img_src($r['image'])) ?>" width="64" height="44" style="object-fit:cover; border-radius:4px" alt="Ảnh sân">
                             </td>
-                            <td><?= e($r['name']) ?></td>
+                            <td>
+                                <?php if (!empty($r['pitch_code'])): ?>
+                                    <span class="tag blue" style="font-size:11px"><?= e($r['pitch_code']) ?></span>
+                                <?php endif; ?>
+                                <b><?= e($r['name']) ?></b>
+                            </td>
                             <td>Sân <?= e($r['type']) ?></td>
+                            <td>
+                                <?php if (!empty($r['parent_id'])): ?>
+                                    <span class="tag green">
+                                        🔗 Thuộc <?= e($r['parent_name']) ?> (Sân <?= e($r['parent_type']) ?>)
+                                    </span>
+                                <?php else: ?>
+                                    <small>Sân gốc / Độc lập</small>
+                                <?php endif; ?>
+                            </td>
                             <td><?= e($r['address']) ?></td>
-                            <td><?= money($r['price_per_hour']) ?></td>
+                            <td><b><?= money($r['price_per_hour']) ?></b></td>
                             <td>
                                 <span class="tag <?= $r['status'] === 'active' ? 'green' : 'gray' ?>">
                                     <?= $r['status'] === 'active' ? 'Hoạt động' : 'Bảo trì' ?>
