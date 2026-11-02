@@ -2,39 +2,43 @@
  * FILE: assets/css/style.css
  * MÔ TẢ: Bộ định dạng CSS nền tảng dùng chung cho toàn bộ hệ thống (Biến màu sắc, Nút bấm,
  *        Topbar, Bố cục trang Khách hàng, Bảng biểu, Form, Thông báo, Trang Đăng nhập/Đăng ký).
+ * PHONG CÁCH: Dynamic Daylight Sport Pro (Xanh sân cỏ - Trắng sáng - Đen thể thao tương phản cao).
  */
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Chakra+Petch:ital,wght@0,600;0,700;1,700&display=swap');
 
 /* =====================================
    BIẾN CSS TOÀN CỤC & RESET CƠ BẢN
    ===================================== */
 :root {
-  --primary: #059669;
-  --primary-hover: #047857;
-  --primary-light: #ecfdf5;
-  --primary-glow: rgba(16, 185, 129, 0.25);
-  --accent: #10b981;
+  --primary: #16a34a;
+  --primary-hover: #15803d;
+  --primary-light: #f0fdf4;
+  --primary-glow: rgba(22, 163, 74, 0.25);
+  --accent: #22c55e;
+  --sport-black: #0f172a;
+  --sport-gold: #f59e0b;
   --blue: #2563eb;
   --amber: #f59e0b;
   --red: #ef4444;
   --dark: #0f172a;
   --dark-surface: #1e293b;
-  --text: #1e293b;
-  --text-muted: #64748b;
+  --text: #0f172a;
+  --text-muted: #475569;
   --text-light: #94a3b8;
-  --bg-body: #f8fafc;
+  --bg-body: #f4f7f5;
   --bg-surface: #ffffff;
-  --border: #e2e8f0;
-  --border-focus: #10b981;
+  --border: #dce5df;
+  --border-focus: #16a34a;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 22px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.1);
-  --shadow-green: 0 8px 24px -4px rgba(5, 150, 105, 0.35);
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 6px 18px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 14px 28px -4px rgba(15, 23, 42, 0.12);
+  --shadow-green: 0 8px 24px -4px rgba(22, 163, 74, 0.35);
   --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sport: 'Chakra Petch', 'Be Vietnam Pro', sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -1306,4 +1310,446 @@ body.adm {
     .adm .amain .form {
         max-width: 100%;
     }
+}
+
+
+/* =====================================================================
+   NÂNG CẤP GIAO DIỆN: DYNAMIC DAYLIGHT SPORT PRO (FULL-STACK EDITION)
+   Phong cách: Sáng sủa, hiện đại, tương phản cao (Xanh sân cỏ - Trắng - Đen thể thao)
+   ===================================================================== */
+
+/* 1. Topbar & Sidebar phong cách thể thao Daylight */
+.topbar {
+  background: #0f172a;
+  border-bottom: 3px solid #22c55e;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.14);
+}
+.brand b {
+  font-family: var(--font-sport);
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.sport-badge-inline {
+  display: inline-block;
+  background: #22c55e;
+  color: #052e16;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  transform: skewX(-10deg);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: 5px;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+.side-user-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 2px solid #22c55e;
+  color: #fff;
+}
+.side-user-card .side-name {
+  color: #ffffff;
+  font-family: var(--font-sport);
+  font-size: 16px;
+  letter-spacing: 0.3px;
+}
+.side-user-card .side-status {
+  color: #4ade80;
+  font-weight: 600;
+}
+.side-jersey-num {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  font-family: var(--font-sport);
+  font-size: 34px;
+  font-weight: 800;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.08);
+  line-height: 1;
+  pointer-events: none;
+}
+.badge-mini.green {
+  background: #16a34a;
+}
+.pitch-mini-card {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid #86efac;
+  border-left: 4px solid #16a34a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  margin-bottom: 10px;
+}
+.pitch-mini-card b {
+  font-family: var(--font-sport);
+  font-size: 12.5px;
+  color: #14532d;
+  display: block;
+}
+.pitch-mini-card small {
+  font-size: 11.5px;
+  color: #166534;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* 2. Tiêu đề trang kiểu Bảng Tỉ Số Thể Thao (Sport Header Banner) */
+.sport-page-head {
+  background: linear-gradient(115deg, #0f172a 0%, #1e293b 65%, #064e3b 100%);
+  color: #ffffff;
+  border-radius: 18px;
+  padding: 22px 26px;
+  margin-bottom: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-bottom: 4px solid #22c55e;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+.sport-page-head::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 140px;
+  height: 140px;
+  border: 3px solid rgba(34, 197, 94, 0.18);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.sport-page-head h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-sport);
+  font-size: 25px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+}
+.sport-page-head small {
+  color: #cbd5e1;
+  font-size: 13.5px;
+  margin: 0;
+}
+
+/* 3. Sơ đồ mặt sân cỏ chiến thuật (Tactical Pitch Visual) */
+.tactical-pitch {
+  position: relative;
+  background: repeating-linear-gradient(
+    90deg,
+    #15803d 0px,
+    #15803d 36px,
+    #16a34a 36px,
+    #16a34a 72px
+  );
+  border: 3px solid #ffffff;
+  outline: 4px solid #14532d;
+  border-radius: 14px;
+  padding: 18px;
+  color: #fff;
+  margin-bottom: 20px;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.25), 0 8px 20px rgba(22, 163, 74, 0.2);
+  overflow: hidden;
+}
+.tactical-pitch-inner {
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 8px;
+  padding: 16px;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(6, 78, 59, 0.22);
+  backdrop-filter: blur(2px);
+}
+.tactical-pitch-inner::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 68px;
+  height: 68px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* 4. Lưới Chọn Khung Giờ Trực Quan (Interactive Time-Slot Grid) */
+.slot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+.slot-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.slot-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.slot-dot.free { background: #ffffff; border: 2px solid #16a34a; }
+.slot-dot.selected { background: #16a34a; border: 2px solid #052e16; }
+.slot-dot.peak { background: #fef3c7; border: 2px solid #f59e0b; }
+.slot-dot.busy { background: #fee2e2; border: 2px solid #ef4444; }
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.slot-btn {
+  position: relative;
+  border: 2px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.slot-btn .slot-time {
+  font-family: var(--font-sport);
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+.slot-btn .slot-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: #16a34a;
+}
+.slot-btn.peak {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+.slot-btn.peak .slot-peak-badge {
+  position: absolute;
+  top: -8px;
+  right: 6px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.slot-btn:hover:not(.busy) {
+  border-color: #16a34a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.16);
+}
+.slot-btn.selected {
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  border-color: #052e16 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+  transform: translateY(-2px);
+}
+.slot-btn.selected .slot-time,
+.slot-btn.selected .slot-sub {
+  color: #ffffff !important;
+}
+.slot-btn.busy {
+  background: #fef2f2;
+  border-color: #fecaca;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.slot-btn.busy .slot-time {
+  color: #991b1b;
+  text-decoration: line-through;
+}
+.slot-btn.busy .slot-sub {
+  color: #dc2626;
+}
+
+/* 5. Sàn Cáp Kèo / Tìm Đối Giao Hữu (Matchmaking Lobby Cards) */
+.match-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+.match-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.22s ease;
+  display: flex;
+  flex-direction: column;
+}
+.match-card:hover {
+  border-color: #22c55e;
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
+}
+.match-card-top {
+  background: linear-gradient(110deg, #0f172a 0%, #1e293b 100%);
+  color: #fff;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid #22c55e;
+}
+.match-vs-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-bottom: 1px dashed #cbd5e1;
+}
+.match-team {
+  flex: 1;
+  text-align: center;
+}
+.match-team-shield {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  margin: 0 auto 6px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 800;
+  background: #dcfce7;
+  color: #15803d;
+  border: 2px solid #86efac;
+}
+.match-team-shield.wait {
+  background: #fef3c7;
+  color: #d97706;
+  border: 2px dashed #fbbf24;
+}
+.vs-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #22c55e;
+  font-family: var(--font-sport);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 2px solid #22c55e;
+}
+.match-body {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 6. Vé Đặt Sân Điện Tử (Stadium Boarding-Pass Ticket) */
+.sport-ticket {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  background: #ffffff;
+  border: 2px solid #16a34a;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
+  margin: 18px 0;
+  text-align: left;
+}
+.ticket-main {
+  padding: 22px 24px;
+  position: relative;
+}
+.ticket-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 2px solid #f1f5f9;
+}
+.ticket-head b {
+  font-family: var(--font-sport);
+  font-size: 18px;
+  color: #0f172a;
+  text-transform: uppercase;
+}
+.ticket-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ticket-item small {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin: 0 0 2px;
+}
+.ticket-item b {
+  font-size: 14.5px;
+  color: #0f172a;
+}
+.ticket-stub {
+  background: linear-gradient(160deg, #0f172a 0%, #064e3b 100%);
+  color: #ffffff;
+  padding: 20px;
+  border-left: 2px dashed #86efac;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.ticket-stub img {
+  width: 116px;
+  height: 116px;
+  background: #fff;
+  padding: 6px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+@media (max-width: 720px) {
+  .sport-ticket { grid-template-columns: 1fr; }
+  .ticket-stub { border-left: 0; border-top: 2px dashed #86efac; }
 }

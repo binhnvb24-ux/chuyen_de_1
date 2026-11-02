@@ -28,9 +28,10 @@ quan-ly-san-bong/
 │   └── chat_widget.php          # Giao diện & JS của cửa sổ Trợ lý AI nổi ở góc phải màn hình
 │
 ├── user/
-│   ├── booking.php              # Đặt sân trực tuyến, chọn dịch vụ, áp mã Voucher & tính tiền Realtime
-│   ├── payment-demo.php         # Cổng Thanh Toán Demo (VietQR, MoMo, VNPay, Giả lập 1-Click) & Biên lai
-│   ├── my-bookings.php          # Quản lý lịch đặt sân của khách & hủy đơn (trước 2 giờ)
+│   ├── booking.php              # Đặt sân theo sơ đồ ô giờ trực quan, chọn dịch vụ, Voucher & bật Cáp Kèo
+│   ├── matchmaking.php          # Sàn Cáp Kèo / Tìm Đối Giao Hữu / Tuyển Cầu Thủ Phủi (5v5, 7v7, 11v11)
+│   ├── payment-demo.php         # Cổng Thanh Toán Demo & Vé Đặt Sân Điện Tử QR (Stadium Boarding Pass)
+│   ├── my-bookings.php          # Quản lý lịch đặt sân, mở vé QR Check-in & hủy đơn (trước 2 giờ)
 │   ├── field-detail.php         # Xem chi tiết sân bóng, lịch trống hôm nay & gửi đánh giá sao
 │   ├── profile.php              # Cập nhật thông tin cá nhân & đổi mật khẩu khách hàng
 │   └── notifications.php        # Trung tâm thông báo của khách hàng

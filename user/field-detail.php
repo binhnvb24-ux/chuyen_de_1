@@ -6,8 +6,7 @@
  *            và cho phép khách hàng gửi đánh giá (chấm sao + nhận xét).
  */
 require_once '../includes/auth.php';
-$u = current_user(); 
-if($u && $u['role'] === 'admin'){ header('Location: ../admin/fields.php'); exit; }
+$u = current_user();
 
 // 1. Lấy thông tin sân bóng theo ID
 $fid = (int)($_GET['id'] ?? $_POST['field_id'] ?? 0);

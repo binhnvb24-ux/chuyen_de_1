@@ -1,8 +1,10 @@
 -- =============================================================================
 -- FILE: database.sql
 -- MÔ TẢ: Kịch bản khởi tạo Cơ sở dữ liệu MySQL cho Hệ thống Quản lý Sân Bóng
--- TÍNH NĂNG: Quản lý người dùng, sân bóng, đặt sân, dịch vụ đi kèm, mã giảm giá,
---            thanh toán Demo (VietQR/MoMo/VNPay), đánh giá, thông báo và AI Chat.
+-- PHIÊN BẢN: DYNAMIC DAYLIGHT SPORT PRO (Full-Stack Edition)
+-- TÍNH NĂNG: Quản lý người dùng, sân bóng, đặt sân trực quan, dịch vụ đi kèm,
+--            mã giảm giá, thanh toán Demo (VietQR/MoMo/VNPay), vé điện tử QR,
+--            Sàn Ghép Kèo / Tìm Đối Giao Hữu (Matchmaking), đánh giá và AI Chat.
 -- Tài khoản mẫu (Mật khẩu dùng chung: password):
 --   + Quản trị viên: admin / password
 --   + Khách hàng 1:  nguyenvana / password
@@ -13,6 +15,7 @@
 CREATE DATABASE IF NOT EXISTS quan_ly_san_bong CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE quan_ly_san_bong;
 SET FOREIGN_KEY_CHECKS=0;
+DROP TABLE IF EXISTS match_requests;
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS ai_chat_logs;
 DROP TABLE IF EXISTS system_settings;
@@ -171,6 +174,30 @@ CREATE TABLE system_settings (
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- 13. BẢNG MATCH_REQUESTS: Lưu thông tin Sàn Cáp Kèo / Tìm Đối Giao Hữu / Tuyển Cầu Thủ
+CREATE TABLE match_requests (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ booking_id INT UNSIGNED NULL,
+ creator_id INT UNSIGNED NOT NULL,
+ field_id INT UNSIGNED NOT NULL,
+ team_name VARCHAR(120) NOT NULL,
+ match_date DATE NOT NULL,
+ start_time TIME NOT NULL,
+ end_time TIME NOT NULL,
+ skill_level ENUM('vui_ve','phong_trao','ban_chuyen') NOT NULL DEFAULT 'phong_trao',
+ match_type ENUM('tim_doi','tuyen_nguoi') NOT NULL DEFAULT 'tim_doi',
+ spots_needed TINYINT UNSIGNED NOT NULL DEFAULT 1,
+ fee_share VARCHAR(80) NOT NULL DEFAULT 'Chia đôi 50/50',
+ contact_phone VARCHAR(30) NOT NULL DEFAULT '',
+ note VARCHAR(255) NOT NULL DEFAULT '',
+ opponent_id INT UNSIGNED NULL,
+ opponent_name VARCHAR(120) NULL,
+ opponent_phone VARCHAR(30) NULL,
+ status ENUM('open','matched','cancelled') NOT NULL DEFAULT 'open',
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_match_date_status(match_date, status)
+) ENGINE=InnoDB;
+
 -- =============================================================================
 -- DỮ LIỆU MẪU (SEED DATA)
 -- =============================================================================
@@ -218,3 +245,9 @@ INSERT INTO reviews(user_id,field_id,rating,comment) VALUES
 (2,1,5,'Mặt cỏ rất êm, đèn sáng rõ, chủ sân nhiệt tình hỗ trợ anh em!'),
 (3,2,5,'Sân 7 rộng thoáng, đá buổi tối rất mát. Đặt qua web thanh toán QR cái được xác nhận liền.'),
 (2,3,5,'Khu vực Bình Thạnh thì sân Galaxy là đỉnh nhất tầm giá, phòng thay đồ sạch sẽ.');
+
+-- Thêm các kèo giao hữu / tìm đối thủ mẫu
+INSERT INTO match_requests(creator_id,field_id,team_name,match_date,start_time,end_time,skill_level,match_type,spots_needed,fee_share,contact_phone,note,status) VALUES
+(2,1,'FC Anh Em Quận 1',CURDATE(),'18:00:00','19:00:00','phong_trao','tim_doi',1,'Chia đôi 50/50','0912345678','Tìm đối văn minh, đá vui vẻ rèn luyện sức khỏe sau giờ làm!','open'),
+(3,2,'Thủ Đức United',DATE_ADD(CURDATE(), INTERVAL 1 DAY),'19:00:00','21:00:00','ban_chuyen','tim_doi',1,'Thua trả 70 / Thắng 30','0987654321','Đội trẻ chạy khỏe, cần tìm đối cứng giao lưu cọ xát sân 7.','open'),
+(2,3,'FC Văn Phòng Bình Thạnh',DATE_ADD(CURDATE(), INTERVAL 1 DAY),'17:00:00','18:00:00','vui_ve','tuyen_nguoi',3,'Góp 35k/người (Free trà đá)','0912345678','Đội thiếu 3 anh em đá vị trí tiền vệ/hậu vệ, hoan nghênh anh em phủi ghép đội!','open');

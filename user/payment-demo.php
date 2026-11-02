@@ -1,9 +1,9 @@
 <?php
 /**
  * FILE: user/payment-demo.php
- * MÔ TẢ: Cổng Thanh Toán Trực Tuyến (Demo) & Biên lai điện tử.
+ * MÔ TẢ: Cổng Thanh Toán Trực Tuyến (Demo) & Vé Đặt Sân Điện Tử QR (Stadium Match Ticket).
  * CHỨC NĂNG: Sinh mã QR động chuẩn VietQR Napas247, giao diện MoMo / Thẻ ATM VNPay Test,
- *            và Bảng điều khiển giả lập thanh toán thành công 1-Click (tự động gạch nợ & duyệt đơn).
+ *            Giả lập thanh toán 1-Click, và cấp Vé Thi Đấu Điện Tử (Boarding Pass) kèm QR Check-in tại sân.
  */
 require_once '../includes/auth.php';
 $u = require_login();
@@ -11,7 +11,7 @@ if ($u['role'] === 'admin') { header('Location: ../admin/dashboard.php'); exit; 
 
 // 1. Lấy thông tin đơn đặt sân và giao dịch thanh toán tương ứng
 $bid = (int)($_GET['booking_id'] ?? $_POST['booking_id'] ?? 0);
-$stmt = $pdo->prepare("SELECT b.*, f.name fname, f.address, f.type ftype, f.image, p.id pid, p.method, p.amount, p.status pay_status, p.transaction_code, p.paid_at 
+$stmt = $pdo->prepare("SELECT b.*, f.name fname, f.address, f.district, f.type ftype, f.image, p.id pid, p.method, p.amount, p.status pay_status, p.transaction_code, p.paid_at 
                        FROM bookings b 
                        JOIN fields f ON f.id = b.field_id 
                        LEFT JOIN payments p ON p.booking_id = b.id 
@@ -52,10 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ->execute([$txn, $bid]);
     $pdo->prepare("UPDATE bookings SET status=? WHERE id=?")
         ->execute([$newBkStatus, $bid]);
-    notify($u['id'], "Thanh toán Demo thành công đơn #$bid ({$bk['fname']}). Mã GD: $txn. Trạng thái đơn: Đã xác nhận.");
+    notify($u['id'], "Thanh toán Demo thành công đơn #$bid ({$bk['fname']}). Mã GD: $txn. Vé điện tử QR đã sẵn sàng!");
     $pdo->commit();
 
-    flash('ok', "🎉 Thanh toán thành công đơn #$bid! Mã giao dịch: $txn. Lịch đặt sân của bạn đã được xác nhận.");
+    flash('ok', "🎉 Thanh toán thành công đơn #$bid! Mã giao dịch: $txn. Hệ thống đã phát hành Vé Đặt Sân Điện Tử QR cho bạn.");
     header("Location: payment-demo.php?booking_id=$bid");
     exit;
   }
@@ -67,13 +67,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-// 3. Khởi tạo đường dẫn ảnh mã QR tự động từ cấu hình ngân hàng VietQR
+// 3. Khởi tạo đường dẫn ảnh mã QR tự động từ cấu hình ngân hàng VietQR & Mã QR Check-in Vé Sân Bóng
 $bank_id = get_setting('bank_id', 'MB') ?: 'MB';
 $account_no = get_setting('bank_account_no', '0901234567') ?: '0901234567';
 $account_name = get_setting('bank_account_name', 'HE THONG SAN BONG PRO') ?: 'HE THONG SAN BONG PRO';
 $amount = (int)$bk['total_price'];
 $memo = "DATSAN" . $bk['id'];
 $qr_url = "https://img.vietqr.io/image/{$bank_id}-{$account_no}-compact2.png?amount={$amount}&addInfo={$memo}&accountName=" . urlencode($account_name);
+
+// Mã QR Check-in Vé Thi Đấu tại sân
+$checkin_payload = "SANBONGPRO|TICKET:#{$bk['id']}|FIELD:{$bk['fname']}|DATE:{$bk['booking_date']}|TIME:" . substr($bk['start_time'],0,5) . "-" . substr($bk['end_time'],0,5) . "|PLAYER:{$u['phone']}";
+$checkin_qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . urlencode($checkin_payload);
 
 $methodLabels = [
   'bank'  => 'Chuyển khoản Ngân hàng VietQR (Napas247)',
@@ -83,35 +87,97 @@ $methodLabels = [
 ];
 
 $active = 'mine';
-$title = 'Cổng Thanh Toán Demo - Đơn #' . $bk['id'];
+$title = 'Vé Điện Tử & Cổng Thanh Toán - Đơn #' . $bk['id'];
 include '../includes/header.php';
 ?>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+<div class="sport-page-head">
   <div>
-    <h2 style="margin:0 0 4px;font-size:24px;font-weight:800;color:#0f172a">💳 Cổng Thanh Toán Trực Tuyến (Demo)</h2>
-    <small style="color:#64748b;font-size:13.5px">Mô phỏng quy trình thanh toán tự động VietQR, MoMo, VNPay và cấp biên lai điện tử</small>
+    <h2>🎫 VÉ ĐẶT SÂN ĐIỆN TỬ & CỔNG THANH TOÁN</h2>
+    <small>Hoàn tất thanh toán VietQR / MoMo / VNPay và sử dụng Vé QR dưới đây để Check-in nhận sân</small>
   </div>
-  <a href="my-bookings.php" class="btn sm outline">← Quay lại Lịch đặt của tôi</a>
+  <div style="display:flex;gap:10px">
+    <button type="button" class="btn sm bl" onclick="window.print()">🖨 In Vé QR / Hóa Đơn</button>
+    <a href="my-bookings.php" class="btn sm outline" style="border-color:#fff;color:#fff !important">← Lịch đặt của tôi</a>
+  </div>
 </div>
 
+<!-- 4. Vé Đặt Sân Điện Tử kiểu Boarding Pass Sân Vận Động -->
+<div class="sport-ticket">
+  <div class="ticket-main">
+    <div class="ticket-head">
+      <div>
+        <span style="background:#16a34a;color:#fff;font-family:var(--font-sport);font-size:11px;font-weight:800;padding:2px 8px;border-radius:4px">OFFICIAL MATCH PASS</span>
+        <b style="display:block;margin-top:4px">⚽ <?=e($bk['fname'])?> (Sân <?=$bk['ftype']?>v<?=$bk['ftype']?>)</b>
+      </div>
+      <div style="text-align:right">
+        <small style="margin:0;color:#64748b">MÃ VÉ SÂN</small>
+        <b style="font-family:var(--font-sport);font-size:22px;color:#16a34a">#<?=str_pad((string)$bk['id'], 5, '0', STR_PAD_LEFT)?></b>
+      </div>
+    </div>
+
+    <div class="ticket-grid">
+      <div class="ticket-item">
+        <small>Đội trưởng / Người đặt</small>
+        <b>👤 <?=e($u['full_name'])?> (<?=e($u['phone'])?>)</b>
+      </div>
+      <div class="ticket-item">
+        <small>Ngày thi đấu</small>
+        <b>📅 <?=date('d/m/Y', strtotime($bk['booking_date']))?></b>
+      </div>
+      <div class="ticket-item">
+        <small>Khung giờ ra sân</small>
+        <b style="color:#16a34a;font-family:var(--font-sport);font-size:16px">🕒 <?=substr($bk['start_time'],0,5)?> – <?=substr($bk['end_time'],0,5)?></b>
+      </div>
+      <div class="ticket-item">
+        <small>Địa điểm sân</small>
+        <b>📍 <?=e($bk['address'])?></b>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #cbd5e1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <span class="tag <?=$bk['status']==='confirmed'?'green':'blue'?>">
+          <?=$bk['status']==='confirmed'?'✔ ĐÃ XÁC NHẬN LỊCH SÂN':'⏳ CHỜ XÁC NHẬN'?>
+        </span>
+        <span class="tag <?=$bk['pay_status']==='paid'?'green':'amber'?>">
+          <?=$bk['pay_status']==='paid'?'💳 ĐÃ THANH TOÁN ('.e($bk['transaction_code']).')':'⏳ CHƯA THANH TOÁN'?>
+        </span>
+      </div>
+      <div style="font-family:var(--font-sport);font-size:20px;font-weight:800;color:#0f172a">
+        TỔNG: <span style="color:#16a34a"><?=money($amount)?></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cuống vé chứa mã QR Check-in -->
+  <div class="ticket-stub">
+    <small style="color:#86efac;font-family:var(--font-sport);font-weight:700;letter-spacing:0.8px;margin-bottom:6px">QR CHECK-IN TẠI SÂN</small>
+    <img src="<?=$checkin_qr_url?>" alt="QR Check-in">
+    <b style="font-family:var(--font-sport);font-size:13px;color:#fff">GATE: PITCH-<?=$bk['ftype']?>V<?=$bk['ftype']?></b>
+    <small style="color:#cbd5e1;font-size:11px;margin:2px 0 0">Đưa mã này cho Quản lý sân</small>
+  </div>
+</div>
+
+<!-- 5. Khu vực Cổng Thanh Toán Demo & Chi tiết hóa đơn -->
 <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:24px;align-items:start">
   <!-- Cột trái: Giao diện Cổng Thanh Toán -->
   <div class="box" style="text-align:center;padding:28px">
     <?php if ($bk['pay_status'] === 'paid'): ?>
-      <div style="background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:16px;padding:28px">
-        <div style="font-size:52px;margin-bottom:10px">✅</div>
-        <h3 style="margin:0 0 8px;color:#065f46;font-size:22px">Đơn Đặt Sân Đã Thanh Toán Thành Công!</h3>
-        <p style="color:#047857;font-size:14px;margin:0 0 18px">Cảm ơn bạn! Hệ thống đã ghi nhận thanh toán và xác nhận lịch thi đấu.</p>
-        <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:12px;padding:16px;border:1px solid #a7f3d0;text-align:left;font-size:13.5px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Mã giao dịch:</span><b style="color:#059669"><?=e($bk['transaction_code'] ?: 'TXN-DEMO')?></b></div>
+      <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:16px;padding:28px">
+        <div style="font-size:52px;margin-bottom:10px">🏆</div>
+        <h3 style="margin:0 0 8px;color:#14532d;font-family:var(--font-sport);font-size:22px">ĐƠN ĐẶT SÂN ĐÃ THANH TOÁN THÀNH CÔNG!</h3>
+        <p style="color:#166534;font-size:14px;margin:0 0 18px">Vé điện tử QR ở phía trên đã có hiệu lực để Check-in tại sân.</p>
+        <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:12px;padding:16px;border:1px solid #86efac;text-align:left;font-size:13.5px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Mã giao dịch:</span><b style="color:#16a34a"><?=e($bk['transaction_code'] ?: 'TXN-DEMO')?></b></div>
           <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Phương thức:</span><b><?=e($methodLabels[$bk['method']] ?? $bk['method'])?></b></div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Số tiền đã trả:</span><b style="color:#059669;font-size:16px"><?=money($amount)?></b></div>
-          <div style="display:flex;justify-content:space-between"><span>Thời gian:</span><b><?=e($bk['paid_at'])?></b></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Số tiền đã trả:</span><b style="color:#16a34a;font-size:16px"><?=money($amount)?></b></div>
+          <div style="display:flex;justify-content:space-between"><span>Thời gian TT:</span><b><?=e($bk['paid_at'])?></b></div>
         </div>
-        <div style="margin-top:20px;display:flex;gap:10px;justify-content:center">
+        <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
           <a href="my-bookings.php" class="btn">Xem Lịch Đặt Của Tôi →</a>
-          <button type="button" class="btn outline" onclick="window.print()">🖨 In biên lai</button>
+          <a href="matchmaking.php?new=1" class="btn bl">⚔️ Đăng Tìm Đối Giao Hữu</a>
+          <button type="button" class="btn outline" onclick="window.print()">🖨 In Vé & Biên Lai</button>
         </div>
       </div>
     <?php else: ?>
@@ -127,7 +193,7 @@ include '../includes/header.php';
 
       <div style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1.5px solid #86efac;border-radius:16px;padding:22px;margin-bottom:20px">
         <span class="tag green" style="margin-bottom:10px">⏳ Đang chờ thanh toán • Thời gian giữ chỗ: <b id="payTimer">10:00</b></span>
-        <h3 style="margin:6px 0;color:#064e3b;font-size:19px"><?=e($methodLabels[$bk['method']] ?? 'Thanh toán trực tuyến')?></h3>
+        <h3 style="margin:6px 0;color:#064e3b;font-family:var(--font-sport);font-size:19px"><?=e($methodLabels[$bk['method']] ?? 'Thanh toán trực tuyến')?></h3>
 
         <?php if ($bk['method'] === 'vnpay'): ?>
           <div style="max-width:380px;margin:16px auto;background:#fff;padding:18px;border-radius:14px;border:1px solid #cbd5e1;text-align:left">
@@ -140,7 +206,7 @@ include '../includes/header.php';
             <input value="NGUYEN VAN A - OTP: 123456" readonly style="width:100%;padding:8px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc">
           </div>
         <?php else: ?>
-          <div style="margin:16px auto;display:inline-block;padding:14px;background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.08);border:2px solid <?=$bk['method']==='momo'?'#d946ef':'#10b981'?>">
+          <div style="margin:16px auto;display:inline-block;padding:14px;background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.08);border:2px solid <?=$bk['method']==='momo'?'#d946ef':'#16a34a'?>">
             <img src="<?=$qr_url?>" alt="QR Code Thanh toán" style="max-width:230px;display:block;border-radius:8px">
           </div>
         <?php endif; ?>
@@ -160,7 +226,7 @@ include '../includes/header.php';
           </div>
           <div style="display:flex;justify-content:space-between">
             <span style="color:#64748b">Nội dung CK:</span>
-            <b style="background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:6px"><?=$memo?></b>
+            <b style="background:#ecfdf5;color:#16a34a;padding:2px 8px;border-radius:6px"><?=$memo?></b>
           </div>
         </div>
       </div>
@@ -190,7 +256,7 @@ include '../includes/header.php';
 
   <!-- Cột phải: Chi tiết hóa đơn đặt sân -->
   <div class="box">
-    <h3 style="margin:0 0 14px;font-size:17px;color:#0f172a">🧾 Thông Tin Đơn Đặt Sân #<?=$bk['id']?></h3>
+    <h3 style="margin:0 0 14px;font-family:var(--font-sport);font-size:18px;color:#0f172a">🧾 CHI TIẾT HÓA ĐƠN #<?=$bk['id']?></h3>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">
       <img src="<?=e(img_src($bk['image']))?>" alt="" style="width:76px;height:58px;border-radius:10px;object-fit:cover">
       <div>
@@ -222,7 +288,7 @@ include '../includes/header.php';
 
     <div style="margin-top:16px;padding-top:14px;border-top:1.5px dashed #cbd5e1;display:flex;justify-content:space-between;align-items:center">
       <b style="font-size:15px">Tổng cộng:</b>
-      <b style="font-size:22px;color:#059669"><?=money($amount)?></b>
+      <b style="font-family:var(--font-sport);font-size:24px;color:#16a34a"><?=money($amount)?></b>
     </div>
   </div>
 </div>

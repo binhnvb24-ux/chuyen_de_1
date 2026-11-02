@@ -420,3 +420,228 @@ body.adm {
     padding: 0 16px 28px;
   }
 }
+
+/* =========================================================
+   CHẾ ĐỘ GIAO DIỆN SÁNG (LIGHT MODE) CHO ADMIN PORTAL
+   Kích hoạt khi thẻ <body class="adm light-mode">
+   ========================================================= */
+.adm .atop-user-name {
+  color: #fff;
+}
+
+.adm .theme-toggle-btn {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+body.adm.light-mode {
+  --adm-bg: #f1f5f3;
+  --adm-sidebar: #ffffff;
+  --adm-surface: #ffffff;
+  --adm-surface-hover: #f8fafc;
+  --adm-border: #d8e4dd;
+  --adm-green: #059669;
+  --adm-neon: #10b981;
+  --adm-text: #0f172a;
+  --adm-muted: #64748b;
+  background: var(--adm-bg);
+  color: var(--adm-text);
+}
+
+/* Sidebar chế độ Sáng */
+body.adm.light-mode .asb {
+  background: linear-gradient(180deg, #ffffff 0%, #f8faf9 100%);
+  border-right: 1px solid var(--adm-border);
+  box-shadow: 4px 0 20px rgba(15, 23, 42, 0.05);
+}
+
+body.adm.light-mode .abrand {
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+body.adm.light-mode .abrand-sub {
+  color: #059669;
+}
+
+body.adm.light-mode .asb-group {
+  color: #64748b;
+}
+
+body.adm.light-mode .asb a {
+  color: #334155;
+}
+
+body.adm.light-mode .asb a:hover {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+body.adm.light-mode .asb a.on {
+  color: #065f46;
+  background: linear-gradient(90deg, #d1fae5 0%, #ecfdf5 100%);
+  border-color: #6ee7b7;
+  box-shadow: inset 3px 0 0 #059669;
+}
+
+body.adm.light-mode .asb .out {
+  color: #dc2626 !important;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+body.adm.light-mode .asb .out:hover {
+  background: #fee2e2;
+  color: #991b1b !important;
+}
+
+/* Main & Topbar chế độ Sáng */
+body.adm.light-mode .amain {
+  background:
+    radial-gradient(circle at 85% 10%, rgba(16, 185, 129, 0.08), transparent 40%),
+    radial-gradient(circle at 15% 80%, rgba(37, 99, 235, 0.05), transparent 40%),
+    var(--adm-bg);
+}
+
+body.adm.light-mode .atop {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid var(--adm-border);
+}
+
+body.adm.light-mode .atop-title-wrap h2,
+body.adm.light-mode .amain h2,
+body.adm.light-mode .amain h3,
+body.adm.light-mode .amain h4 {
+  color: #0f172a !important;
+}
+
+body.adm.light-mode .atop-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+body.adm.light-mode .atop-btn:hover {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #047857 !important;
+}
+
+body.adm.light-mode .atop-user {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+body.adm.light-mode .atop-user-name {
+  color: #0f172a !important;
+}
+
+/* Thẻ thống kê (Stats) & Hộp (Box) chế độ Sáng */
+body.adm.light-mode .stat {
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border-color: var(--adm-border);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+}
+
+body.adm.light-mode .stat b {
+  color: #0f172a;
+}
+
+body.adm.light-mode .box,
+body.adm.light-mode .amain .box {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid var(--adm-border) !important;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05) !important;
+}
+
+body.adm.light-mode .bh {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Thanh tìm kiếm (sbar) và Biểu mẫu (Form Input/Select/Textarea) chế độ Sáng */
+body.adm.light-mode .amain .sbar {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.adm.light-mode .amain input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+body.adm.light-mode .amain select,
+body.adm.light-mode .amain textarea {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+body.adm.light-mode .amain select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+body.adm.light-mode .amain .form label {
+  color: #334155 !important;
+}
+
+/* Bảng dữ liệu (Table) chế độ Sáng */
+body.adm.light-mode .tw,
+body.adm.light-mode .amain .tw {
+  background: #ffffff !important;
+  border-color: var(--adm-border) !important;
+}
+
+body.adm.light-mode table th,
+body.adm.light-mode .amain table th {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+body.adm.light-mode table td,
+body.adm.light-mode .amain table td {
+  color: #1e293b !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.adm.light-mode table tr:hover td,
+body.adm.light-mode .amain table tbody tr:hover td {
+  background: #f0fdf4 !important;
+}
+
+/* Tag trạng thái & Thông báo trong chế độ Sáng */
+body.adm.light-mode .amain .tag.green {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+body.adm.light-mode .amain .tag.blue {
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+body.adm.light-mode .amain .tag.gray {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+/* Lịch FullCalendar trong chế độ Sáng */
+body.adm.light-mode #calendar {
+  color: #0f172a;
+}
+
+body.adm.light-mode .fc-theme-standard td,
+body.adm.light-mode .fc-theme-standard th,
+body.adm.light-mode .fc-theme-standard .fc-scrollgrid {
+  border-color: #cbd5e1 !important;
+}
+
+body.adm.light-mode .fc .fc-col-header-cell-cushion,
+body.adm.light-mode .fc .fc-daygrid-day-number,
+body.adm.light-mode .fc .fc-timegrid-slot-label-cushion {
+  color: #1e293b !important;
+}
+
+body.adm.light-mode .fc .fc-toolbar-title {
+  color: #0f172a !important;
+}
