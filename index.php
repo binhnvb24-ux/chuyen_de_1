@@ -18,6 +18,7 @@
  */
 
 require_once 'includes/auth.php';
+require_once 'includes/football_news_feed.php';
 
 // ----------------------------------------------------------------------------
 // PHẦN 1: KIỂM TRA NGƯỜI DÙNG ĐANG ĐĂNG NHẬP
@@ -127,6 +128,9 @@ try {
     ")->fetchColumn();
 } catch (Exception $e) {}
 
+// 3.6. Lấy 5 bản tin thể thao bóng đá nóng hổi hiện nay (RSS VnExpress Thể Thao + Cache 15p)
+$footballNews = get_latest_football_news(5);
+
 // ----------------------------------------------------------------------------
 // PHẦN 4: TRUY VẤN LỊCH ĐẶT GẦN ĐÂY & THÔNG BÁO CỦA NGƯỜI DÙNG (NẾU ĐÃ LOGIN)
 // ----------------------------------------------------------------------------
@@ -182,8 +186,9 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Chakra+Petch:ital,wght@0,600;0,700;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/home.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=<?=filemtime(__DIR__ . '/assets/css/style.css')?>">
+  <link rel="stylesheet" href="assets/css/home.css?v=<?=filemtime(__DIR__ . '/assets/css/home.css')?>">
+  <link rel="stylesheet" href="assets/css/effects.css?v=<?=filemtime(__DIR__ . '/assets/css/effects.css')?>">
 </head>
 <body class="hp">
 
@@ -241,6 +246,64 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
   </div>
 </header>
 
+<!-- Thanh Trung Tâm Trực Tiếp LIVE ARENA (Matchday Broadcast Center Bar) -->
+<div class="sport-live-ticker">
+  <!-- Cụm trái: Huy hiệu LIVE đỏ phát sáng & Đồng hồ điện tử sân vận động -->
+  <div class="arena-left">
+    <span class="arena-live-badge">
+      <i class="arena-live-dot"></i> LIVE ARENA
+    </span>
+    <span class="arena-clock" id="liveArenaClock">
+      🕒 <?=date('H:i:s')?>
+    </span>
+  </div>
+
+  <!-- Cụm giữa: Dải Thẻ Trạng Thái Sân & Kèo Đấu Trực Tiếp (Clickable Matchday Pills) -->
+  <div class="ticker-track">
+    <div class="ticker-content">
+      <a class="arena-pill" href="user/booking.php">
+        <span class="pill-tag green">🟢 SÂN TRỐNG</span>
+        <span>Hiện có <b style="color:#4ade80"><?=$freeNowCount?>/<?=$totalActiveFields?> sân</b> sẵn sàng thi đấu</span>
+      </a>
+
+      <a class="arena-pill" href="user/matchmaking.php">
+        <span class="pill-tag amber">⚔️ CÁP KÈO</span>
+        <span>Có <b style="color:#fbbf24"><?=count($openMatches)?> đội bóng</b> đang chờ bắt đối giao hữu</span>
+      </a>
+
+      <?php foreach ($openMatches as $tm): ?>
+        <a class="arena-pill" href="user/matchmaking.php">
+          <span class="pill-tag blue">🔥 KÈO MỞ</span>
+          <span>
+            🛡️ <b style="color:#fff"><?=e($tm['team_name'])?></b>
+            <b style="color:#ef4444;margin:0 3px">VS</b>
+            <i style="color:#86efac">Chờ đối...</i>
+            • <?=e($tm['fname'])?> (<?=substr($tm['start_time'], 0, 5)?> - <?=date('d/m', strtotime($tm['match_date']))?>)
+          </span>
+        </a>
+      <?php endforeach; ?>
+
+      <a class="arena-pill" href="user/booking.php">
+        <span class="pill-tag green">🏟 SƠ ĐỒ 2D</span>
+        <span>Ghép/Tách sân tự động: <b style="color:#4ade80">5A, 5B, 5C ↔ 7A ↔ 11A</b></span>
+      </a>
+
+      <?php if (!empty($footballNews[0])): ?>
+        <a class="arena-pill" href="#footballNewsBox">
+          <span class="pill-tag amber">📰 TIN NÓNG</span>
+          <span><?=e($footballNews[0]['title'])?></span>
+        </a>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Cụm phải: Nút thao tác nhanh -->
+  <div class="arena-right">
+    <a class="arena-quick-btn" href="user/booking.php">⚡ Đặt sân ngay</a>
+    <a class="arena-quick-btn" href="user/matchmaking.php" style="border-color:#38bdf8;color:#7dd3fc !important;background:rgba(56,189,248,0.14)">⚔️ Sàn Cáp Kèo</a>
+  </div>
+</div>
+
 <!-- ==========================================================================
      KHUNG BỐ CỤC 3 CỘT TRANG CHỦ: SIDEBAR TRÁI + NỘI DUNG CHÍNH + SIDEBAR PHẢI
      ========================================================================== -->
@@ -250,10 +313,18 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
        PHẦN 6: CỘT 1 - MENU ĐIỀU HƯỚNG NHANH BÊN TRÁI (LEFT SIDEBAR)
        ======================================================================== -->
   <nav class="hp-side">
+    <!-- Thẻ số áo cầu thủ (Player Locker Room Card) -->
+    <div class="side-user-card" style="padding:14px;border-radius:12px;margin-bottom:14px;text-align:center">
+      <div class="side-jersey-num">#<?=!empty($u['id']) ? str_pad((string)($u['id'] % 99), 2, '0', STR_PAD_LEFT) : '10'?></div>
+      <div class="side-avatar" style="margin:0 auto 6px"><?=e(mb_substr($u['full_name'] ?? 'P', 0, 1))?></div>
+      <div class="side-name"><?=e($u['full_name'] ?? 'Cầu Thủ Tự Do')?></div>
+      <div class="side-status" style="justify-content:center"><i class="radar-dot"></i> Sẵn sàng ra sân</div>
+    </div>
+
     <a class="on" href="index.php">🏟 Trang chủ Sân Bóng</a>
 
     <?php if ($u && $u['role'] === 'admin'): ?>
-      <a href="admin/dashboard.php" style="background:#ecfdf5;color:#047857;font-weight:700;border:1px solid #a7f3d0">
+      <a href="admin/dashboard.php" style="background:rgba(34,197,94,0.18);color:#4ade80 !important;font-weight:800;border:1px solid #22c55e">
         ⚙️ Về trang Quản trị Admin
       </a>
     <?php endif; ?>
@@ -655,37 +726,167 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
       </div>
     </div>
 
-    <!-- 8.4. Bản tin & hướng dẫn tính năng sân cỏ -->
-    <div class="hp-right-news">
-      <div class="bh">
-        <b>📰 Bản tin Sân Cỏ</b>
-        <a href="user/matchmaking.php">Sôi động</a>
+    <!-- 8.4. Bản Tin Sân Cỏ - Tin tức Thể thao Bóng đá 24/7 hiện nay -->
+    <div class="hp-right-news" id="footballNewsBox">
+      <div class="bh" style="margin-bottom:10px">
+        <b>📰 Bản Tin Sân Cỏ 24/7</b>
+        <button
+          type="button"
+          id="btnRefreshNews"
+          onclick="refreshFootballNews()"
+          style="background:#ecfdf5;border:1px solid #86efac;color:#047857;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:6px;cursor:pointer"
+          title="Cập nhật tin bóng đá mới nhất"
+        >
+          🔄 Cập nhật
+        </button>
       </div>
 
-      <a class="hp-news-item" href="user/booking.php">
-        <span class="news-thumb">⚡</span>
-        <span>
-          <b>Chọn giờ bằng sơ đồ trực quan</b>
-          <small>Bấm chọn trực tiếp các ô giờ trống và xem nhãn Giờ Vàng.</small>
-        </span>
-      </a>
+      <small style="display:flex;align-items:center;gap:6px;color:#15803d;font-weight:600;font-size:11.5px;margin-bottom:10px">
+        <i class="radar-dot"></i>
+        <span id="newsStatusLabel">Tin nóng Bóng đá Việt Nam & Quốc tế</span>
+      </small>
 
-      <a class="hp-news-item" href="user/matchmaking.php">
-        <span class="news-thumb news-two">🏆</span>
-        <span>
-          <b>Cáp kèo văn minh - Đá vui khỏe</b>
-          <small>Kết nối các FC văn phòng, sinh viên và bán chuyên.</small>
-        </span>
-      </a>
-
-      <a class="hp-news-item" href="user/my-bookings.php">
-        <span class="news-thumb news-three">🎫</span>
-        <span>
-          <b>Check-in bằng Vé QR điện tử</b>
-          <small>Xuất trình mã QR trên điện thoại khi đến nhận sân.</small>
-        </span>
-      </a>
+      <div id="footballNewsList" style="display:flex;flex-direction:column;gap:10px">
+        <?php foreach ($footballNews as $idx => $item): ?>
+          <a
+            class="hp-news-card"
+            href="<?=e($item['link'])?>"
+            target="_blank"
+            rel="noopener"
+            onclick="return openFootballNewsModal(event, this)"
+            data-title="<?=e($item['title'])?>"
+            data-summary="<?=e($item['summary'])?>"
+            data-image="<?=e($item['image'])?>"
+            data-tag="<?=e($item['tag'])?>"
+            data-time="<?=e($item['time_label'])?>"
+            data-source="<?=e($item['source'])?>"
+            data-link="<?=e($item['link'])?>"
+            style="display:flex;gap:11px;padding:10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;text-decoration:none;transition:all 0.2s ease;align-items:flex-start"
+          >
+            <img
+              src="<?=e($item['image'])?>"
+              alt="<?=e($item['title'])?>"
+              onerror="this.src='https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&q=80'"
+              style="width:68px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid #cbd5e1"
+            >
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px">
+                <span style="background:#dcfce7;color:#166534;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px">
+                  <?=e($item['tag'])?>
+                </span>
+                <small style="margin:0;font-size:10.5px;color:#64748b"><?=e($item['time_label'])?></small>
+              </div>
+              <b style="font-size:12.5px;color:#0f172a;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                <?=e($item['title'])?>
+              </b>
+            </div>
+          </a>
+        <?php endforeach; ?>
+      </div>
     </div>
+
+    <!-- Modal Đọc Nhanh Bản Tin Bóng Đá ngay trên Trang chủ -->
+    <div
+      id="footballNewsModal"
+      onclick="if(event.target===this)closeFootballNewsModal()"
+      style="display:none;position:fixed;inset:0;background:rgba(7,13,25,0.78);backdrop-filter:blur(5px);z-index:9995;place-items:center;padding:16px"
+    >
+      <div style="background:#fff;max-width:540px;width:100%;border-radius:18px;overflow:hidden;border:2px solid #22c55e;box-shadow:0 24px 50px rgba(0,0,0,0.45)">
+        <div style="position:relative;height:220px;background:#0f172a">
+          <img id="fnModalImg" src="" alt="" style="width:100%;height:100%;object-fit:cover">
+          <span
+            id="fnModalTag"
+            style="position:absolute;top:14px;left:14px;background:#16a34a;color:#fff;font-family:var(--font-sport);font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:6px"
+          ></span>
+          <button
+            type="button"
+            onclick="closeFootballNewsModal()"
+            style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(15,23,42,0.85);color:#fff;font-size:16px;cursor:pointer"
+          >✕</button>
+        </div>
+        <div style="padding:22px">
+          <small id="fnModalMeta" style="color:#16a34a;font-weight:700;margin:0 0 6px"></small>
+          <h3 id="fnModalTitle" style="margin:0 0 12px;font-family:var(--font-sport);font-size:19px;line-height:1.35;color:#0f172a"></h3>
+          <p id="fnModalSummary" style="margin:0 0 20px;color:#334155;font-size:14px;line-height:1.6"></p>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <button type="button" class="btn sm outline" onclick="closeFootballNewsModal()">Đóng</button>
+            <a id="fnModalLink" href="#" target="_blank" rel="noopener" class="btn sm">
+              📰 Đọc bài chi tiết trên báo →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mở hộp thoại đọc nhanh bản tin bóng đá khi người dùng bấm vào thẻ tin
+      function openFootballNewsModal(e, el) {
+        if (e) e.preventDefault();
+        var modal = document.getElementById('footballNewsModal');
+        if (!modal) return true;
+        document.getElementById('fnModalImg').src = el.getAttribute('data-image') || '';
+        document.getElementById('fnModalTag').textContent = el.getAttribute('data-tag') || '⚽ Bóng đá';
+        document.getElementById('fnModalMeta').textContent =
+          '🕒 ' + (el.getAttribute('data-time') || 'Vừa xong') + ' • Nguồn: ' + (el.getAttribute('data-source') || 'Thể Thao 24/7');
+        document.getElementById('fnModalTitle').textContent = el.getAttribute('data-title') || '';
+        document.getElementById('fnModalSummary').textContent = el.getAttribute('data-summary') || '';
+        document.getElementById('fnModalLink').href = el.getAttribute('data-link') || '#';
+        modal.style.display = 'grid';
+        return false;
+      }
+
+      function closeFootballNewsModal() {
+        var modal = document.getElementById('footballNewsModal');
+        if (modal) modal.style.display = 'none';
+      }
+
+      // Làm mới danh sách bản tin bóng đá trực tiếp qua AJAX
+      function refreshFootballNews() {
+        var btn = document.getElementById('btnRefreshNews');
+        var list = document.getElementById('footballNewsList');
+        var label = document.getElementById('newsStatusLabel');
+        if (!list) return;
+        if (btn) btn.textContent = '⏳ Đang tải...';
+
+        fetch('api/football_news.php?refresh=1')
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (btn) btn.textContent = '🔄 Cập nhật';
+            if (!res || !res.ok || !res.items) return;
+            if (label) label.textContent = 'Đã cập nhật lúc ' + res.updated_at;
+            var html = '';
+            res.items.forEach(function (item) {
+              var safeTitle = (item.title || '').replace(/"/g, '&quot;');
+              var safeSum = (item.summary || '').replace(/"/g, '&quot;');
+              var safeImg = (item.image || '').replace(/"/g, '&quot;');
+              var safeTag = (item.tag || '').replace(/"/g, '&quot;');
+              var safeTime = (item.time_label || '').replace(/"/g, '&quot;');
+              var safeSrc = (item.source || '').replace(/"/g, '&quot;');
+              var safeLink = (item.link || '#').replace(/"/g, '&quot;');
+
+              html +=
+                '<a class="hp-news-card" href="' + safeLink + '" target="_blank" rel="noopener" ' +
+                'onclick="return openFootballNewsModal(event, this)" ' +
+                'data-title="' + safeTitle + '" data-summary="' + safeSum + '" data-image="' + safeImg + '" ' +
+                'data-tag="' + safeTag + '" data-time="' + safeTime + '" data-source="' + safeSrc + '" data-link="' + safeLink + '" ' +
+                'style="display:flex;gap:11px;padding:10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;text-decoration:none;transition:all 0.2s ease;align-items:flex-start">' +
+                  '<img src="' + safeImg + '" alt="" onerror="this.src=\'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&q=80\'" style="width:68px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid #cbd5e1">' +
+                  '<div style="flex:1;min-width:0">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px">' +
+                      '<span style="background:#dcfce7;color:#166534;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px">' + safeTag + '</span>' +
+                      '<small style="margin:0;font-size:10.5px;color:#64748b">' + safeTime + '</small>' +
+                    '</div>' +
+                    '<b style="font-size:12.5px;color:#0f172a;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + safeTitle + '</b>' +
+                  '</div>' +
+                '</a>';
+            });
+            list.innerHTML = html;
+          })
+          .catch(function () {
+            if (btn) btn.textContent = '🔄 Cập nhật';
+          });
+      }
+    </script>
 
     <!-- 8.5. Thẻ Hotline liên hệ Ban Quản Lý Sân -->
     <div class="hp-right-help">
@@ -759,5 +960,7 @@ if (is_file(__DIR__ . '/includes/chat_widget.php')) {
     include 'includes/chat_widget.php';
 }
 ?>
+<!-- Nhúng Engine Hiệu Ứng Tương Tác Thể Thao (Confetti, 3D Tilt, Scroll Reveal, Animated Counter) -->
+<script src="assets/js/sport-effects.js?v=<?=filemtime(__DIR__ . '/assets/js/sport-effects.js')?>"></script>
 </body>
 </html>

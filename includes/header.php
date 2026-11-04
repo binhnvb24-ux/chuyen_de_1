@@ -30,6 +30,7 @@ if (isset($pdo)) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Chakra+Petch:ital,wght@0,600;0,700;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?=$base?>assets/css/style.css?v=<?=filemtime(__DIR__ . '/../assets/css/style.css')?>">
+  <link rel="stylesheet" href="<?=$base?>assets/css/effects.css?v=<?=filemtime(__DIR__ . '/../assets/css/effects.css')?>">
 </head>
 <body class="user-portal">
 <!-- Thanh điều hướng thể thao trên cùng (Athletic Daylight Topbar) -->
@@ -75,6 +76,47 @@ if (isset($pdo)) {
     </div>
   </div>
 </header>
+
+<!-- Thanh Trung Tâm Trực Tiếp LIVE ARENA (Matchday Broadcast Center Bar) -->
+<div class="sport-live-ticker">
+  <div class="arena-left">
+    <span class="arena-live-badge">
+      <i class="arena-live-dot"></i> LIVE ARENA
+    </span>
+    <span class="arena-clock" id="liveArenaClock">
+      🕒 <?=date('H:i:s')?>
+    </span>
+  </div>
+
+  <div class="ticker-track">
+    <div class="ticker-content">
+      <a class="arena-pill" href="<?=$base?>user/booking.php">
+        <span class="pill-tag green">⚡ ĐẶT SÂN 30P</span>
+        <span>Sơ đồ 2D trực quan (Ca 60p / 90p / 120p) & Tính giá động tự động</span>
+      </a>
+
+      <a class="arena-pill" href="<?=$base?>user/matchmaking.php">
+        <span class="pill-tag amber">⚔️ CÁP KÈO</span>
+        <span>Hiện có <b style="color:#fbbf24"><?=$open_matches_count?> kèo giao hữu</b> đang mở chờ bắt đối</span>
+      </a>
+
+      <a class="arena-pill" href="<?=$base?>user/booking.php">
+        <span class="pill-tag blue">🏟 GHÉP SÂN</span>
+        <span>Khóa chéo thông minh: <b style="color:#4ade80">Sân 5A, 5B, 5C ↔ Sân 7A ↔ Đại Sân 11A</b></span>
+      </a>
+
+      <a class="arena-pill" href="<?=$base?>user/my-bookings.php">
+        <span class="pill-tag green">⏳ HOLD 10 PHÚT</span>
+        <span>Giữ chỗ chống đặt trùng & Cấp Vé Điện Tử QR Check-in tại sân</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="arena-right">
+    <a class="arena-quick-btn" href="<?=$base?>user/booking.php">⚡ Đặt sân</a>
+    <a class="arena-quick-btn" href="<?=$base?>user/matchmaking.php" style="border-color:#38bdf8;color:#7dd3fc !important;background:rgba(56,189,248,0.14)">⚔️ Cáp kèo</a>
+  </div>
+</div>
 
 <!-- Khung bố cục 2 cột: Sidebar menu trái + Nội dung chính bên phải -->
 <div class="layout one">

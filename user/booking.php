@@ -346,6 +346,31 @@ include '../includes/header.php';
   </div>
 </div>
 
+<!-- Thanh tiến trình 3 bước đặt sân chuyên nghiệp (Booking Stepper) -->
+<div class="booking-stepper">
+  <div class="step-node active">
+    <div class="step-num">1</div>
+    <div class="step-info">
+      <b>Chọn Sân & Khung Giờ 30p</b>
+      <small>Sơ đồ mặt sân 2D & tính giá động</small>
+    </div>
+  </div>
+  <div class="step-node">
+    <div class="step-num">2</div>
+    <div class="step-info">
+      <b>Giữ Chỗ HOLD 10 Phút</b>
+      <small>Khóa chéo sân Cha/Con & quét QR</small>
+    </div>
+  </div>
+  <div class="step-node">
+    <div class="step-num">3</div>
+    <div class="step-info">
+      <b>Nhận Vé Điện Tử QR</b>
+      <small>Check-in tại sân hoặc Cáp kèo</small>
+    </div>
+  </div>
+</div>
+
 <!-- Thanh chọn Sân bóng & Ngày ra sân -->
 <div class="box" style="margin-bottom:20px;padding:20px;border-left:5px solid #16a34a">
   <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;align-items:end">
@@ -403,6 +428,133 @@ include '../includes/header.php';
             <small style="color:#bbf7d0;margin:0">GIÁ CƠ SỞ</small>
             <div style="font-family:var(--font-sport);font-size:26px;font-weight:800;color:#ffffff">
               <?=money($cur_field['price_per_hour'])?><span style="font-size:13px">/h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <?php
+      // Xây dựng bản đồ ánh xạ pitch_code -> thông tin sân để vẽ Sơ đồ Mặt Sân Cỏ 2D Trực Quan
+      $pitchMapByCode = [];
+      foreach ($fields as $pf) {
+          $code = strtoupper(trim($pf['pitch_code'] ?? ''));
+          if ($code !== '') {
+              $pitchMapByCode[$code] = $pf;
+          }
+      }
+      $relatedIds = array_map(fn($r) => (int)$r['id'], $hierarchy['all_related'] ?? []);
+
+      // Hàm trợ giúp lấy class trạng thái (is-selected hoặc is-linked-lock) và URL chuyển sân
+      $getPitchNodeMeta = function (string $code, string $fallbackLabel) use ($pitchMapByCode, $fid, $relatedIds, $sel) {
+          $node = $pitchMapByCode[$code] ?? null;
+          if (!$node) {
+              return [
+                  'id'    => 0,
+                  'name'  => $fallbackLabel,
+                  'price' => '',
+                  'class' => '',
+                  'href'  => '#'
+              ];
+          }
+          $nid = (int)$node['id'];
+          $cls = '';
+          if ($nid === (int)$fid) {
+              $cls = 'is-selected';
+          } elseif (in_array($nid, $relatedIds, true)) {
+              $cls = 'is-linked-lock';
+          }
+          return [
+              'id'    => $nid,
+              'name'  => $node['name'],
+              'price' => money($node['price_per_hour']) . '/h',
+              'class' => $cls,
+              'href'  => '?field_id=' . $nid . '&date=' . urlencode($sel)
+          ];
+      };
+
+      $p11A = $getPitchNodeMeta('11A', 'Đại Sân 11A (Ghép 7A + 7B)');
+      $p7A  = $getPitchNodeMeta('7A', 'Sân 7A (Ghép 5A + 5B + 5C)');
+      $p7B  = $getPitchNodeMeta('7B', 'Sân 7B Tiêu Chuẩn');
+      $p5A  = $getPitchNodeMeta('5A', 'Sân 5A');
+      $p5B  = $getPitchNodeMeta('5B', 'Sân 5B');
+      $p5C  = $getPitchNodeMeta('5C', 'Sân 5C');
+      ?>
+
+      <!-- 5.1B. Sơ đồ Mặt Sân Cỏ 2D Trực Quan (Interactive 2D Hierarchical Pitch Map) -->
+      <div class="pitch-2d-container">
+        <div class="pitch-2d-header">
+          <h4>🏟 SƠ ĐỒ MẶT SÂN CỎ 2D TRỰC QUAN (BẤM VÀO SÂN ĐỂ CHUYỂN NHANH)</h4>
+          <div class="pitch-2d-legend">
+            <span><i class="pitch-2d-dot" style="background:#22c55e;border:1px solid #fff"></i> Đang chọn</span>
+            <span><i class="pitch-2d-dot" style="background:#f59e0b;border:1px solid #fde68a"></i> Tự động khóa chéo (Cha/Con)</span>
+            <span><i class="pitch-2d-dot" style="background:#15803d;border:1px solid rgba(255,255,255,0.6)"></i> Sân khác</span>
+          </div>
+        </div>
+
+        <div class="pitch-2d-stadium">
+          <!-- Thanh chọn Đại Sân 11A (Bao trùm toàn bộ cụm 7A + 7B) -->
+          <a
+            href="<?=e($p11A['href'])?>"
+            class="pitch-2d-11-bar pitch-node <?=$p11A['class']?>"
+            style="text-decoration:none;color:#fff"
+          >
+            <div>
+              <b style="font-family:var(--font-sport);font-size:14px">🏆 [11A] <?=e($p11A['name'])?></b>
+              <small style="display:inline;margin-left:8px;color:#bbf7d0">(Tổ hợp ghép toàn bộ Sân 7A + Sân 7B)</small>
+            </div>
+            <span style="font-family:var(--font-sport);font-weight:800;font-size:13px;color:#4ade80">
+              <?=$p11A['class'] === 'is-selected' ? '⚡ ĐANG CHỌN' : ($p11A['class'] === 'is-linked-lock' ? '🔗 KHÓA CHÉO' : $p11A['price'])?>
+            </span>
+          </a>
+
+          <!-- Lưới 2 Sân 7 người: Sân 7A (Chứa 5A, 5B, 5C) và Sân 7B -->
+          <div class="pitch-2d-grid-7">
+            <!-- Khu vực Sân 7A -->
+            <div class="pitch-2d-zone-7">
+              <a
+                href="<?=e($p7A['href'])?>"
+                class="pitch-2d-7-head pitch-node <?=$p7A['class']?>"
+                style="text-decoration:none;color:#fff"
+              >
+                <span>⚽ [7A] <?=e($p7A['name'])?></span>
+                <span style="color:#86efac">
+                  <?=$p7A['class'] === 'is-selected' ? '⚡ ĐANG CHỌN' : ($p7A['class'] === 'is-linked-lock' ? '🔗 KHÓA CHÉO' : $p7A['price'])?>
+                </span>
+              </a>
+
+              <!-- 3 Sân 5 người nằm trong lòng Sân 7A -->
+              <div class="pitch-2d-grid-5">
+                <?php foreach ([['5A', $p5A], ['5B', $p5B], ['5C', $p5C]] as [$code5, $node5]): ?>
+                  <a
+                    href="<?=e($node5['href'])?>"
+                    class="pitch-2d-cell-5 pitch-node <?=$node5['class']?>"
+                    style="text-decoration:none"
+                  >
+                    <b>⚽ SÂN <?=$code5?></b>
+                    <small><?=e($node5['price'] ?: 'Sân 5v5')?></small>
+                    <?php if ($node5['class'] === 'is-selected'): ?>
+                      <small style="margin-top:4px;font-weight:800">⚡ ĐANG CHỌN</small>
+                    <?php elseif ($node5['class'] === 'is-linked-lock'): ?>
+                      <small style="margin-top:4px;color:#fef3c7;font-weight:800">🔗 Khóa chéo</small>
+                    <?php endif; ?>
+                  </a>
+                <?php endforeach; ?>
+              </div>
+            </div>
+
+            <!-- Khu vực Sân 7B -->
+            <div class="pitch-2d-zone-7" style="display:flex;flex-direction:column;justify-content:space-between">
+              <a
+                href="<?=e($p7B['href'])?>"
+                class="pitch-2d-7-head pitch-node <?=$p7B['class']?>"
+                style="text-decoration:none;color:#fff;height:100%;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:18px 12px;margin:0"
+              >
+                <span style="font-family:var(--font-sport);font-size:16px;font-weight:800">⚽ [7B] <?=e($p7B['name'])?></span>
+                <small style="color:#dcfce7;margin-top:4px">Sân 7v7 độc lập • Thuộc cụm Đại Sân 11A</small>
+                <span style="margin-top:8px;background:rgba(0,0,0,0.28);padding:4px 10px;border-radius:6px;color:#4ade80;font-family:var(--font-sport)">
+                  <?=$p7B['class'] === 'is-selected' ? '⚡ ĐANG CHỌN' : ($p7B['class'] === 'is-linked-lock' ? '🔗 TỰ KHÓA CHÉO' : $p7B['price'])?>
+                </span>
+              </a>
             </div>
           </div>
         </div>

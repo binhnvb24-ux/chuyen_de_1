@@ -539,7 +539,8 @@ include '../includes/header.php';
     ?>
       <div class="match-card" style="<?=($isOwner || $isOpponent) ? 'border:2px solid #2563eb;' : ''?>">
         <div class="match-card-top">
-          <span style="font-family:var(--font-sport);font-weight:700;font-size:13.5px;color:#4ade80">
+          <span style="font-family:var(--font-sport);font-weight:700;font-size:13.5px;color:#4ade80;display:inline-flex;align-items:center">
+            <?php if ($isOpen): ?><i class="radar-dot"></i><?php endif; ?>
             <?=$m['match_type'] === 'tim_doi' ? '⚔️ CÁP KÈO ĐỐI KHÁNG' : '🏃 TUYỂN THÊM ' . $m['spots_needed'] . ' CẦU THỦ'?>
           </span>
           <span class="tag <?=$lvlCl?>"><?=$lvlTxt?></span>

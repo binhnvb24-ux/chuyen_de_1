@@ -112,6 +112,32 @@ include '../includes/header.php';
   </div>
 </div>
 
+<!-- Thanh tiến trình 3 bước đặt sân chuyên nghiệp (Booking Stepper) -->
+<?php $isPaidOrDone = ($bk['pay_status'] === 'paid' || $bk['status'] === 'confirmed'); ?>
+<div class="booking-stepper">
+  <div class="step-node done">
+    <div class="step-num">✔</div>
+    <div class="step-info">
+      <b>Chọn Sân & Khung Giờ 30p</b>
+      <small>Đã chọn <?=e($bk['fname'])?></small>
+    </div>
+  </div>
+  <div class="step-node <?=$isPaidOrDone ? 'done' : 'active'?>">
+    <div class="step-num"><?=$isPaidOrDone ? '✔' : '2'?></div>
+    <div class="step-info">
+      <b>Giữ Chỗ HOLD 10 Phút</b>
+      <small><?=$isPaidOrDone ? 'Đã xác nhận thanh toán' : 'Đang khóa sân chờ thanh toán'?></small>
+    </div>
+  </div>
+  <div class="step-node <?=$isPaidOrDone ? 'active' : ''?>">
+    <div class="step-num">3</div>
+    <div class="step-info">
+      <b>Nhận Vé Điện Tử QR</b>
+      <small><?=$isPaidOrDone ? 'Vé QR đã sẵn sàng Check-in!' : 'Kích hoạt ngay sau khi thanh toán'?></small>
+    </div>
+  </div>
+</div>
+
 <!-- Đồng hồ đếm ngược 10 phút giữ chỗ tạm thời (HOLD Countdown) -->
 <?php if ($bk['status'] === 'pending' && !empty($bk['hold_expires_at']) && $bk['pay_status'] !== 'paid'):
   $remainSec = max(0, strtotime($bk['hold_expires_at']) - time());
