@@ -1,0 +1,2271 @@
+/**
+ * ============================================================================
+ * FILE: assets/css/home.css
+ * MÔ TẢ: Định dạng giao diện chuyên biệt cho Trang chủ (index.php)
+ *        Chuẩn thiết kế "Sân Bóng Pro — 15 Màn Hình Khách Hàng" (01 & 02).
+ * ============================================================================
+ */
+
+body.hp {
+  background: #f4f7f5;
+  color: #0f172a;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Khung nội dung chính bên phải Sidebar */
+.hp-main {
+  min-width: 0;
+}
+
+.hp-main > section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+}
+
+/* ==========================================================================
+   1. HERO BANNER CR7 "SIUUU! ⚡7" & THANH TÌM KIẾM NỔI (SCREEN 01 & 02)
+   ========================================================================== */
+.hp-hero-wrapper {
+  position: relative;
+  margin-bottom: 22px;
+}
+
+.hp-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  min-height: 250px;
+  padding: 28px 32px 62px !important;
+  background: linear-gradient(100deg, #053b29 0%, #065f46 52%, #047857 100%);
+  color: #ffffff;
+  border: 0 !important;
+  box-shadow: 0 14px 34px rgba(5, 59, 41, 0.2);
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.hp-hero-content {
+  position: relative;
+  z-index: 3;
+}
+
+.hp-hero small.k {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #a7f3d0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.hp-hero h1 {
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-size: clamp(24px, 2.4vw, 33px);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 10px;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
+.hp-hero h1 span {
+  display: block;
+  color: #4ade80;
+  margin-top: 2px;
+}
+
+.hp-hero-desc {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #d1fae5;
+  max-width: 500px;
+}
+
+.hp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hp-chips span {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ecfdf5;
+}
+
+.hp-chips i {
+  color: #4ade80;
+  font-style: normal;
+  font-weight: 800;
+  margin-right: 3px;
+}
+
+/* Khối Ảnh CR7 bên phải Hero Banner */
+.hp-hero-cr7 {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 48%;
+  background: url('../images/cr7-celebration.jpg') center 22% / cover no-repeat;
+  z-index: 1;
+}
+
+/* Lớp phủ chuyển sắc mượt nối nền xanh bên trái sang ảnh CR7 bên phải */
+.hp-hero-cr7::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, #065f46 0%, rgba(6, 95, 70, 0.55) 28%, rgba(6, 95, 70, 0.05) 65%),
+    linear-gradient(0deg, rgba(5, 59, 41, 0.55) 0%, transparent 45%);
+}
+
+.hero-siuuu-text {
+  position: absolute;
+  top: 34%;
+  left: 8%;
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 24px;
+  color: #a3e635;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.55);
+  transform: rotate(-8deg);
+  z-index: 2;
+}
+
+.hero-cr7-sig {
+  position: absolute;
+  top: 38%;
+  right: 26px;
+  font-family: 'Brush Script MT', 'Segoe Script', cursive;
+  font-size: 38px;
+  color: rgba(255, 255, 255, 0.92);
+  transform: rotate(-12deg);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+
+/* Thanh tìm kiếm trắng đè lên mép dưới Hero Banner */
+.hp-form {
+  position: relative;
+  z-index: 5;
+  margin: -38px 18px 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.hp-filter-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px solid #f1f5f9;
+  padding-right: 10px;
+}
+
+.hp-filter-col:nth-of-type(4) {
+  border-right: 0;
+}
+
+.hp-filter-col label {
+  margin: 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+}
+
+.hp-filter-col select,
+.hp-filter-col input {
+  border: 0 !important;
+  padding: 3px 0 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.hp-search-btn {
+  padding: 12px 22px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   2. HÀNG 4 THẺ KPI TRẮNG (SCREEN 01)
+   ========================================================================== */
+.hp-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.hp-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.025);
+}
+
+.hp-kpi-card .kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #16a34a;
+  line-height: 1.1;
+}
+
+.hp-kpi-card .kpi-lbl {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.hp-kpi-card .kpi-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.hp-kpi-card .kpi-ico.green {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.hp-kpi-card .kpi-ico.red {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.hp-kpi-card .kpi-ico.blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.hp-kpi-card .kpi-ico.amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+/* ==========================================================================
+   3. LƯỚI THẺ SÂN BÓNG 3 CỘT (SCREEN 01 & 02)
+   ========================================================================== */
+.hp-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 14px;
+}
+
+.hp-h span {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hp-h a {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #16a34a;
+  text-decoration: none;
+}
+
+.hp-h a:hover {
+  text-decoration: underline;
+}
+
+.hp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.hp-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.hp-card:hover {
+  transform: translateY(-4px);
+  border-color: #86efac !important;
+  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.08);
+}
+
+.hp-img {
+  position: relative;
+  height: 150px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.hp-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.hp-card:hover .hp-img img {
+  transform: scale(1.05);
+}
+
+.hp-top-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.hp-badge-type {
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.hp-badge-status {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  color: #ffffff;
+}
+
+.hp-badge-status.free {
+  background: #16a34a;
+}
+
+.hp-badge-status.busy {
+  background: #f59e0b;
+}
+
+.hp-rating-pill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.hp-cb {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.hp-cb h4 {
+  margin: 0 0 4px;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: #0f172a;
+}
+
+.hp-cb small {
+  color: #64748b;
+  font-size: 11.5px;
+  margin: 0 0 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hp-card-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hp-price-inline b {
+  font-size: 15px;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.hp-price-inline small {
+  display: inline;
+  font-size: 11px;
+  color: #64748b;
+  margin: 0;
+}
+
+.hp-card-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-detail {
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  color: #475569 !important;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: all 0.15s ease;
+}
+
+.btn-detail:hover {
+  background: #f8fafc;
+  color: #0f172a !important;
+}
+
+/* ==========================================================================
+   4. HÀNG 2 CỘT: KÈO GIAO HỮU & ƯU ĐÃI NỔI BẬT (SCREEN 02)
+   ========================================================================== */
+.hp-split-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.hp-split-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+}
+
+.hp-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hp-match-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.hp-match-item b {
+  font-size: 13px;
+  color: #0f172a;
+  display: block;
+}
+
+.hp-match-item .match-sub-tag {
+  color: #16a34a;
+  font-weight: 700;
+  font-size: 11.5px;
+}
+
+.hp-match-item small {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.match-join-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: #16a34a !important;
+  white-space: nowrap;
+  text-decoration: none !important;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+}
+
+.match-join-link:hover {
+  background: #16a34a;
+  color: #ffffff !important;
+}
+
+.hp-voucher-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.hp-voucher-card .vc-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.hp-voucher-card .vc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.hp-voucher-card .vc-info b {
+  display: block;
+  font-size: 13.5px;
+  color: #065f46;
+}
+
+.hp-voucher-card .vc-info small {
+  margin: 2px 0;
+  font-size: 11.5px;
+  color: #047857;
+}
+
+.hp-voucher-card .vc-sub {
+  display: block;
+  font-size: 11px;
+  color: #15803d;
+}
+
+/* ==========================================================================
+   5. VÌ SAO CHỌN SÂN BÓNG PRO & BẢN TIN SÂN CỎ (SCREEN 02)
+   ========================================================================== */
+.hp-why-mint-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.why-mint-box {
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.why-mint-box b {
+  display: block;
+  font-size: 13px;
+  color: #15803d;
+  margin-bottom: 4px;
+}
+
+.why-mint-box small {
+  margin: 0;
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.hp-news-grid-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.hp-news-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+  align-items: flex-start;
+}
+
+.hp-news-card img {
+  width: 64px;
+  height: 54px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #cbd5e1;
+}
+
+/* ==========================================================================
+   6. CHÂN TRANG GỌN GÀNG (CLEAN FOOTER BAR - SCREEN 02)
+   ========================================================================== */
+.hp-clean-footer {
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  padding: 16px 24px;
+  margin-top: 24px;
+}
+
+.hp-clean-footer-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hp-clean-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hp-clean-footer-links a {
+  color: #475569;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hp-clean-footer-links a:hover {
+  color: #16a34a;
+}
+
+/* ==========================================================================
+   7. PHẦN MỚI 1: TÌM SÂN THEO KHU VỰC (THIẾT KẾ HÀI HÒA + BẢN ĐỒ LEAFLET + 6 ĐIỂM DỪNG)
+   ========================================================================== */
+.hp-area-section {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fdf9 100%);
+  border: 1.5px solid #dcfce7;
+  border-radius: 18px;
+  padding: 22px 24px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+}
+
+.hp-area-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.hp-area-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hp-area-main-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.hp-area-sub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.hp-area-desc {
+  margin: 0;
+  font-size: 12.2px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.hp-area-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.area-near-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 13px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.24);
+  transition: all 0.18s ease;
+}
+
+.area-near-btn:hover {
+  background: linear-gradient(135deg, #15803d, #14532d);
+  transform: translateY(-1px);
+}
+
+.hp-area-mini-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mini-select-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12px;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.mini-select-box:hover {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.08);
+}
+
+.mini-select-box select,
+.mini-select-box input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 16px 0 0 !important;
+  margin: 0 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  outline: none !important;
+  box-shadow: none !important;
+  width: auto !important;
+  cursor: pointer;
+}
+
+.mini-select-box .caret {
+  position: absolute;
+  right: 9px;
+  top: 44%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.area-geo-banner {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+  color: #065f46;
+  font-size: 12.5px;
+  font-weight: 600;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Bố cục 2 cột hài hòa: Cột trái (Bản đồ Leaflet rộng 350px) + Cột phải (Lưới 3x2 thẻ Khu vực) */
+.hp-area-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.hp-map-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid #bbf7d0;
+  background: #f1f5f9;
+  min-height: 360px;
+  position: relative;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.area-map-top-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.am-live-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.86);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.am-live-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+}
+
+.am-reset-btn {
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.am-reset-btn:hover {
+  background: #ecfdf5;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.hp-leaflet-area-canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  flex: 1;
+  z-index: 1;
+}
+
+.map-floating-label {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  border: 1px solid #86efac;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 11.8px;
+  font-weight: 800;
+  color: #15803d;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.area-reset-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #dcfce7;
+  color: #15803d !important;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+.area-reset-badge:hover {
+  background: #fee2e2;
+  color: #dc2626 !important;
+  border-color: #fca5a5;
+}
+
+/* Cột phải: Lưới 3 cột x 2 hàng = 6 thẻ Khu vực cân đối chiều cao với Bản đồ */
+.hp-district-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.hp-district-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 13px;
+  overflow: hidden;
+  text-decoration: none !important;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.035);
+  transition: all 0.22s ease;
+}
+
+.hp-district-card:hover,
+.hp-district-card.active {
+  border-color: #16a34a;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.13);
+}
+
+.dist-card-img {
+  position: relative;
+  width: 100%;
+  height: 92px;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.dist-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.hp-district-card:hover .dist-card-img img {
+  transform: scale(1.07);
+}
+
+.dist-stop-pill {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  background: rgba(15, 23, 42, 0.84);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+}
+
+.dist-rating-pill {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #b45309;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.dist-card-body {
+  padding: 10px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+  gap: 3px;
+}
+
+.dist-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.dist-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dist-count-badge {
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.hp-district-card:hover .dist-count-badge,
+.hp-district-card.active .dist-count-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.dist-highlight {
+  font-size: 12px;
+  font-weight: 700;
+  color: #15803d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dist-sub-info {
+  margin: 0 !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dist-card-meta {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.dist-price {
+  color: #475569;
+  font-weight: 600;
+}
+
+.dist-price b {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.dist-km-pill {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.dist-go-text {
+  font-weight: 800;
+  color: #16a34a;
+  font-size: 11px;
+}
+
+/* Dải 6 Điểm dừng sân bóng nổi tiếng TP.HCM nằm hài hòa bên dưới lưới bản đồ */
+.hp-stops-showcase {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1.5px dashed #cbd5e1;
+}
+
+.stops-showcase-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stops-showcase-head b {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.stops-showcase-head small {
+  margin: 2px 0 0;
+  font-size: 11.8px;
+  color: #64748b;
+}
+
+.stops-count-tag {
+  background: #064e3b;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 11px;
+  border-radius: 999px;
+}
+
+.stops-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stop-item-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stop-item-card:hover,
+.stop-item-card.active {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.12);
+}
+
+.sic-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.sic-badge {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.sic-km {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.sic-rating {
+  font-size: 11px;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.sic-name {
+  font-size: 13.8px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+
+.sic-addr {
+  font-size: 11.5px;
+  color: #475569;
+  margin-bottom: 2px;
+}
+
+.sic-contact {
+  font-size: 11.5px;
+  color: #334155;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.sic-scale {
+  margin: 0 0 10px;
+  font-size: 11.3px;
+  color: #64748b;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sic-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.sic-btn {
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: all 0.16s ease;
+}
+
+.sic-btn.map {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.sic-btn.map:hover {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.sic-btn.dir {
+  background: #eff6ff;
+  color: #1d4ed8 !important;
+}
+
+.sic-btn.book {
+  margin-left: auto;
+  background: #16a34a;
+  color: #ffffff !important;
+}
+
+.sic-btn.book:hover {
+  background: #15803d;
+}
+
+.sb-pin-bubble.famous {
+  background: #065f46;
+  border-color: #fde047;
+}
+
+/* ==========================================================================
+   8. PHẦN MỚI 2: DÀNH CHO CHỦ SÂN (QUẢN LÝ SÂN) + ĐẶT SÂN NHANH GIỜ VÀNG
+   ========================================================================== */
+.hp-owner-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+
+.hp-owner-top-title {
+  margin: 0;
+  padding: 24px 24px 8px;
+  text-align: center;
+  font-size: 21px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hp-owner-grid {
+  display: grid;
+  grid-template-columns: 0.95fr 1.25fr;
+  gap: 24px;
+  align-items: center;
+  padding: 12px 32px 28px;
+}
+
+.hp-owner-subtitle {
+  margin: 0 0 16px;
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.45;
+}
+
+.hp-owner-bullet-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.hp-owner-bullet-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+}
+
+.hp-owner-bullet-list li:hover,
+.hp-owner-bullet-list li.active {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.hp-owner-admin-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: #15803d !important;
+  text-decoration: none !important;
+  padding: 9px 14px;
+  border-radius: 6px;
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+}
+
+.hp-owner-bullet-list .bullet-ic {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #2e7d32;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.hp-owner-coop-btn {
+  display: inline-block;
+  background: #2e7d32;
+  color: #ffffff !important;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 6px;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.28);
+  transition: all 0.2s ease;
+}
+
+.hp-owner-coop-btn:hover {
+  background: #1b5e20;
+  transform: translateY(-2px);
+}
+
+/* Cột phải: Bộ 3 thiết bị (Màn hình Desktop iMac + Laptop + Điện thoại) */
+.hp-owner-devices {
+  position: relative;
+  padding: 6px 26px 18px 26px;
+  display: flex;
+  justify-content: center;
+}
+
+/* 1. Màn hình máy tính bàn (Desktop Monitor) */
+.dev-monitor {
+  width: 100%;
+  max-width: 390px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mon-bezel {
+  width: 100%;
+  background: #0f172a;
+  border-radius: 12px 12px 0 0;
+  padding: 9px 9px 7px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+}
+
+.mon-screen {
+  background: #f8fafc;
+  border-radius: 6px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 98px 1fr;
+  min-height: 170px;
+}
+
+.mon-sidebar {
+  background: #143628;
+  color: #d1fae5;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ms-logo {
+  font-size: 9px;
+  font-weight: 800;
+  color: #ffffff;
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.ms-item {
+  font-size: 8.5px;
+  padding: 4px 5px;
+  border-radius: 4px;
+  color: #a7f3d0;
+}
+
+.ms-item.on {
+  background: #2e7d32;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.mon-main {
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.mm-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.mm-top b {
+  font-size: 9.5px;
+  color: #0f172a;
+}
+
+.mm-pill {
+  background: #2e7d32;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mm-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-bottom: 7px;
+}
+
+.mm-stat {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 4px 5px;
+}
+
+.mm-stat span {
+  display: block;
+  font-size: 7.5px;
+  color: #64748b;
+}
+
+.mm-stat b {
+  font-size: 9px;
+  color: #0f172a;
+}
+
+.mm-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mm-row {
+  display: grid;
+  grid-template-columns: 0.8fr 1.1fr 1fr;
+  padding: 3.5px 6px;
+  font-size: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  align-items: center;
+}
+
+.mm-row.head {
+  background: #f1f5f9;
+  font-weight: 700;
+  color: #475569;
+}
+
+.mm-row i {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 7.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.mm-row i.st-ok {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.mm-row i.st-wait {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.mon-chin {
+  width: 100%;
+  height: 18px;
+  background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+  border-radius: 0 0 12px 12px;
+}
+
+.mon-stand {
+  width: 54px;
+  height: 22px;
+  background: linear-gradient(180deg, #94a3b8, #cbd5e1);
+  clip-path: polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%);
+}
+
+.mon-foot {
+  width: 110px;
+  height: 5px;
+  background: #94a3b8;
+  border-radius: 999px;
+}
+
+/* 2. Laptop đè góc trái dưới */
+.dev-laptop {
+  position: absolute;
+  left: 0;
+  bottom: 6px;
+  width: 175px;
+  z-index: 2;
+}
+
+.lap-screen {
+  background: #ffffff;
+  border: 5px solid #1e293b;
+  border-radius: 8px 8px 0 0;
+  height: 98px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+}
+
+.lap-side {
+  background: #143628;
+}
+
+.lap-content {
+  padding: 6px;
+  background: #f8fafc;
+}
+
+.lap-head {
+  font-size: 7.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 5px;
+}
+
+.lap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.lap-grid span {
+  height: 26px;
+  border-radius: 4px;
+}
+.lap-grid span.g { background: #bbf7d0; border: 1px solid #4ade80; }
+.lap-grid span.y { background: #fef08a; border: 1px solid #facc15; }
+.lap-grid span.b { background: #bfdbfe; border: 1px solid #60a5fa; }
+.lap-grid span.r { background: #fecaca; border: 1px solid #f87171; }
+
+.lap-base {
+  height: 7px;
+  background: linear-gradient(180deg, #cbd5e1, #64748b);
+  border-radius: 0 0 8px 8px;
+  margin: 0 -8px;
+}
+
+/* 3. Điện thoại đè góc phải dưới */
+.dev-phone {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  width: 96px;
+  background: #ffffff;
+  border: 4px solid #1e293b;
+  border-radius: 14px;
+  padding: 5px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.24);
+  z-index: 3;
+}
+
+.ph-notch-bar {
+  width: 28px;
+  height: 3.5px;
+  background: #334155;
+  border-radius: 999px;
+  margin: 0 auto 5px;
+}
+
+.ph-top-title {
+  font-size: 7.5px;
+  font-weight: 800;
+  color: #14532d;
+  background: #dcfce7;
+  padding: 2px 4px;
+  border-radius: 4px;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.ph-row-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 7px;
+  font-weight: 700;
+  color: #334155;
+  padding: 3px 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ph-row-item .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+.ph-row-item .dot.g { background: #16a34a; }
+.ph-row-item .dot.y { background: #f59e0b; }
+
+.ph-btn-mini {
+  margin-top: 5px;
+  background: #2e7d32;
+  color: #ffffff;
+  font-size: 7px;
+  font-weight: 800;
+  text-align: center;
+  padding: 3px;
+  border-radius: 4px;
+}
+
+/* Khối "Đặt Sân Nhanh Theo Giờ Vàng" nền cỏ xanh đậm ở đáy section */
+.hp-golden-quick-box {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.22), transparent 65%),
+    linear-gradient(180deg, #1b4332 0%, #143625 100%);
+  padding: 22px 28px 26px;
+  color: #ffffff;
+}
+
+.golden-head {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.golden-head h4 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.golden-head small {
+  margin: 0;
+  font-size: 12px;
+  color: #bbf7d0;
+}
+
+.golden-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.golden-bar-item {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: 1.35fr 1.15fr auto auto;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.gb-time {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  display: block;
+}
+
+.gb-sub-free {
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.gb-field-select {
+  width: 100%;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  margin: 0 !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  cursor: pointer;
+}
+
+.gb-near {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.gb-discount {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #dc2626;
+  white-space: nowrap;
+}
+
+.gb-btn {
+  background: #2e7d32;
+  color: #ffffff !important;
+  border: 0;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 6px;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.gb-btn:hover {
+  background: #1b5e20;
+  transform: translateY(-1px);
+}
+
+/* Modal Đăng Ký Hợp Tác Chủ Sân */
+.partner-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 9999;
+}
+
+.partner-modal-backdrop.open {
+  display: flex;
+}
+
+.partner-modal-card {
+  width: 100%;
+  max-width: 560px;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #bbf7d0;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.partner-modal-head {
+  background: linear-gradient(135deg, #064e3b, #16a34a);
+  color: #ffffff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.partner-modal-head b {
+  display: block;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.partner-modal-head small {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #d1fae5;
+}
+
+.partner-close-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.partner-modal-form {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.partner-modal-form label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.partner-modal-form input,
+.partner-modal-form select {
+  margin: 0 !important;
+}
+
+.pm-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pm-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ==========================================================================
+   9. BẢN ĐỒ SPLIT-VIEW (DANH SÁCH CỤM SÂN + LEAFLET MAP + GEOLOCATION)
+   ========================================================================== */
+.hp-split-map-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px 22px;
+  margin-bottom: 24px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+}
+
+.hp-split-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.split-map-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hp-split-map-body {
+  display: grid;
+  grid-template-columns: 1.05fr 1.15fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Cột trái: Danh sách thẻ sân có cuộn */
+.split-pitch-list {
+  max-height: 510px;
+  overflow-y: auto;
+  padding-right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.split-pitch-list::-webkit-scrollbar {
+  width: 6px;
+}
+.split-pitch-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.split-pitch-card {
+  display: flex;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.split-pitch-card:hover,
+.split-pitch-card.active {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.12);
+}
+
+.spc-thumb {
+  position: relative;
+  width: 118px;
+  min-height: 108px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #0f172a;
+}
+
+.spc-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.spc-dist-tag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.spc-rating {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #b45309;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.spc-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.spc-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.spc-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.spc-km-badge {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.spc-addr {
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 3px;
+}
+
+.spc-sub {
+  font-size: 11.8px;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.spc-price-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.8px;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.spc-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.spc-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: none !important;
+  transition: all 0.16s ease;
+}
+
+.spc-btn.primary {
+  background: #16a34a;
+  color: #ffffff !important;
+}
+
+.spc-btn.primary:hover {
+  background: #15803d;
+}
+
+.spc-btn.outline {
+  background: #ffffff;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1;
+}
+
+.spc-btn.outline:hover {
+  border-color: #16a34a;
+  color: #16a34a !important;
+}
+
+.spc-btn.dir {
+  background: #eff6ff;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe;
+}
+
+/* Cột phải: Bản đồ Leaflet.js */
+.split-leaflet-wrap {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid #bbf7d0;
+  min-height: 510px;
+  position: relative;
+}
+
+.split-leaflet-canvas {
+  width: 100%;
+  height: 510px;
+  z-index: 1;
+}
+
+/* Ghim giá tiền tùy chỉnh trên bản đồ Leaflet */
+.sb-pin-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #16a34a;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  font-weight: 800;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.28);
+  white-space: nowrap;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.sb-pin-bubble:hover {
+  background: #065f46;
+  transform: scale(1.08);
+}
+
+/* Giao diện Popup InfoWindow khi click vào ghim trên bản đồ */
+.sb-map-popup {
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  min-width: 250px;
+}
+
+.smp-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.smp-head img {
+  width: 58px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.smp-open {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #16a34a;
+  margin-bottom: 2px;
+}
+
+.smp-head b {
+  font-size: 13.5px;
+  color: #0f172a;
+  line-height: 1.25;
+  display: block;
+}
+
+.smp-body {
+  font-size: 11.8px;
+  color: #334155;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 9px;
+}
+
+.smp-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.smp-btn {
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+.smp-btn.primary {
+  background: #16a34a;
+  color: #ffffff !important;
+}
+
+.smp-btn.outline {
+  background: #f1f5f9;
+  color: #0f172a !important;
+}
+
+.smp-btn.dir {
+  background: #eff6ff;
+  color: #1d4ed8 !important;
+}
+
+@media (max-width: 1024px) {
+  .hp-grid,
+  .hp-why-mint-grid,
+  .hp-news-grid-row,
+  .hp-district-cards,
+  .stops-showcase-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hp-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hp-split-row,
+  .hp-area-grid,
+  .hp-owner-grid,
+  .hp-split-map-body {
+    grid-template-columns: 1fr;
+  }
+  .hp-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .golden-bar-item {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .hp-grid,
+  .hp-why-mint-grid,
+  .hp-news-grid-row,
+  .hp-kpi-row,
+  .hp-form,
+  .hp-district-cards,
+  .stops-showcase-grid,
+  .golden-bar-item {
+    grid-template-columns: 1fr;
+  }
+  .hp-hero {
+    grid-template-columns: 1fr;
+  }
+  .hp-hero-cr7 {
+    display: none;
+  }
+  .dev-laptop,
+  .dev-phone {
+    display: none;
+  }
+}

@@ -1,0 +1,1467 @@
+/**
+ * ============================================================================
+ * FILE: assets/css/effects.css
+ * MÔ TẢ: Bộ Hiệu Ứng Tương Tác Thể Thao Chuyên Nghiệp (Sport Visual Effects Suite)
+ * BAO GỒM 6 HIỆU ỨNG TRỌN BỘ:
+ *   1. Pháo giấy chiến thắng (Canvas Confetti) & Bảng Tỷ Số Truyền Hình (Broadcast Toast)
+ *   2. Sơ đồ Mặt Sân Cỏ 2D Trực Quan (Interactive 2D Hierarchical Pitch Map: 5A/5B/5C <-> 7A <-> 11A)
+ *   3. Hiệu ứng Cuộn Trang Mượt (Scroll Reveal) & Đếm Số Tự Động (Animated Counter)
+ *   4. Hiệu ứng Thẻ Cầu Thủ FIFA 3D Tilt & Ánh Kim Hologram (3D Card Tilt & Foil Glare)
+ *   5. Thanh Tiến Trình 3 Bước Đặt Sân (Booking Stepper) & Sóng Radar Trực Tiếp (Live Radar Pulse)
+ *   6. Hiệu ứng Nhịp Tim Khẩn Cấp (Heartbeat Urgency) cho Đồng Hồ HOLD 10 Phút & Còi Trọng Tài
+ * ============================================================================
+ */
+
+/* ==========================================================================
+   1. PHÁO GIẤY CHIẾN THẮNG (CONFETTI CANVAS) & BẢNG ĐIỆN TỬ TRUYỀN HÌNH
+   ========================================================================== */
+#sportConfettiCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.broadcast-toast {
+  position: fixed;
+  top: 84px;
+  right: 24px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 320px;
+  max-width: 450px;
+  background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
+  color: #ffffff;
+  border: 2px solid #22c55e;
+  border-left: 6px solid #4ade80;
+  border-radius: 14px;
+  padding: 14px 18px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 24px rgba(34, 197, 94, 0.35);
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+}
+
+.broadcast-toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.broadcast-toast.is-cancel {
+  background: linear-gradient(135deg, #7f1d1d 0%, #1e1b4b 100%);
+  border-color: #f87171;
+  border-left-color: #ef4444;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 24px rgba(239, 68, 68, 0.35);
+}
+
+.broadcast-toast-badge {
+  background: #22c55e;
+  color: #052e16;
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.broadcast-toast.is-cancel .broadcast-toast-badge {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+/* ==========================================================================
+   2. SƠ ĐỒ MẶT SÂN CỎ 2D TRỰC QUAN (INTERACTIVE 2D PITCH MAP)
+   ========================================================================== */
+.pitch-2d-container {
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+  border: 2px solid #10b981;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 18px;
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(6, 78, 59, 0.25);
+}
+
+.pitch-2d-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pitch-2d-header h4 {
+  margin: 0;
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-size: 16px;
+  color: #4ade80;
+  letter-spacing: 0.5px;
+}
+
+.pitch-2d-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #d1fae5;
+}
+
+.pitch-2d-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pitch-2d-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* Khung sân 11 người (Bao ngoài cùng) */
+.pitch-2d-stadium {
+  position: relative;
+  background: repeating-linear-gradient(
+    90deg,
+    #15803d 0px,
+    #15803d 36px,
+    #166534 36px,
+    #166534 72px
+  );
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
+}
+
+/* Vòng tròn giữa sân 11 */
+.pitch-2d-stadium::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 76px;
+  height: 76px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Vạch giữa sân 11 */
+.pitch-2d-stadium::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.pitch-2d-11-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.pitch-2d-11-bar:hover {
+  border-color: #4ade80;
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.pitch-2d-grid-7 {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.pitch-2d-zone-7 {
+  background: rgba(6, 78, 59, 0.55);
+  border: 2px dashed rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  padding: 10px;
+  transition: all 0.25s ease;
+}
+
+.pitch-2d-7-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 7px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.pitch-2d-7-head:hover {
+  border-color: #4ade80;
+  transform: translateY(-1px);
+}
+
+.pitch-2d-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pitch-2d-cell-5 {
+  background: rgba(21, 128, 61, 0.78);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  border-radius: 8px;
+  padding: 12px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+}
+
+.pitch-2d-cell-5:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: #86efac;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.pitch-2d-cell-5 b {
+  display: block;
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.pitch-2d-cell-5 small {
+  font-size: 10.5px;
+  color: #dcfce7;
+  margin-top: 2px;
+  display: block;
+}
+
+/* Trạng thái Sân đang được chọn (Active Floodlight Glow) */
+.pitch-node.is-selected {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+  border-color: #ffffff !important;
+  color: #052e16 !important;
+  box-shadow: 0 0 24px rgba(74, 222, 128, 0.9), inset 0 0 12px rgba(255, 255, 255, 0.45) !important;
+  transform: translateY(-2px);
+}
+
+.pitch-node.is-selected b,
+.pitch-node.is-selected small,
+.pitch-node.is-selected span {
+  color: #052e16 !important;
+  font-weight: 800;
+}
+
+/* Trạng thái Sân Cha/Con bị khóa chéo tự động khi chọn sân hiện tại */
+.pitch-node.is-linked-lock {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.88), rgba(217, 119, 6, 0.88)) !important;
+  border-color: #fde68a !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.55) !important;
+}
+
+@media (max-width: 760px) {
+  .pitch-2d-grid-7 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   3. HIỆU ỨNG CUỘN TRANG MƯỢT (SCROLL REVEAL) & ĐẾM SỐ (COUNTER)
+   ========================================================================== */
+.reveal-item {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-item.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   4. HIỆU ỨNG THẺ CẦU THỦ FIFA 3D TILT & ÁNH KIM HOLOGRAM
+   ========================================================================== */
+.hp-card,
+.sport-ticket {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.holo-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, 0.32) 0%,
+    rgba(74, 222, 128, 0.12) 35%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 3;
+}
+
+.hp-card:hover .holo-glare,
+.sport-ticket:hover .holo-glare {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   5. THANH TIẾN TRÌNH 3 BƯỚC ĐẶT SÂN (BOOKING STEPPER) & SÓNG RADAR
+   ========================================================================== */
+.booking-stepper {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.step-node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  transition: all 0.25s ease;
+}
+
+.step-node .step-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  color: #334155;
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-weight: 800;
+  font-size: 15px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.step-node .step-info b {
+  display: block;
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.step-node .step-info small {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.step-node.active {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border-color: #10b981;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.16);
+}
+
+.step-node.active .step-num {
+  background: linear-gradient(135deg, #22c55e, #059669);
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.22);
+}
+
+.step-node.active .step-info b {
+  color: #065f46;
+}
+
+.step-node.done {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.step-node.done .step-num {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+@media (max-width: 780px) {
+  .booking-stepper {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sóng Radar Trực Tiếp (Live Radar Pulse) */
+.radar-dot {
+  position: relative;
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  margin-right: 6px;
+}
+
+.radar-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #22c55e;
+  animation: radarWave 1.6s infinite ease-out;
+}
+
+@keyframes radarWave {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   6. HIỆU ỨNG NHỊP TIM KHẨN CẤP (HEARTBEAT URGENCY) CHO ĐỒNG HỒ HOLD 10 PHÚT
+   ========================================================================== */
+@keyframes heartbeatUrgent {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+.hold-urgent {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  animation: heartbeatUrgent 1s infinite ease-in-out;
+}
+
+
+/* ==========================================================================
+   7. GIAO DIỆN "DYNAMIC DAYLIGHT SPORT" — SÂN BÓNG PRO (15 MÀN HÌNH CHUẨN)
+   ========================================================================== */
+
+/* 7.1. Nền Sân Đấu Ban Ngày Sáng Sủa (Clean Mint & Daylight Background) */
+body.hp,
+body.user-portal {
+  background-color: #f4f7f5 !important;
+  color: #0f172a !important;
+}
+
+/* 7.2. Thanh Topbar Trắng Tinh Tế (Clean White Topbar) */
+.topbar,
+.hp-top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04) !important;
+  padding: 0 24px !important;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.topbar-container {
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 64px;
+}
+
+.brand,
+.hp-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none !important;
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+  flex-shrink: 0;
+}
+
+.brand b,
+.hp-brand b {
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a !important;
+  letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.brand small,
+.hp-brand small {
+  color: #64748b !important;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  margin: 1px 0 0;
+  display: block;
+}
+
+.sport-badge-inline {
+  display: inline-block;
+  background: #16a34a;
+  color: #ffffff;
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-weight: 800;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  letter-spacing: 0.5px;
+}
+
+/* Menu điều hướng giữa Topbar */
+.topbar-nav,
+.hp-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar-nav .nav-item,
+.hp-nav a {
+  color: #334155 !important;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 7px 15px;
+  border-radius: 9px;
+  text-decoration: none !important;
+  transition: all 0.18s ease;
+}
+
+.topbar-nav .nav-item:hover,
+.hp-nav a:hover {
+  background: #f1f5f9;
+  color: #16a34a !important;
+}
+
+.topbar-nav .nav-item.active,
+.hp-nav a.on {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  font-weight: 700;
+}
+
+/* Cụm bên phải Topbar */
+.tb-right,
+.hp-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tb-create-match {
+  color: #16a34a !important;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none !important;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.18s ease;
+}
+
+.tb-create-match:hover {
+  background: #f0fdf4;
+}
+
+.btn-noti {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 16px;
+  color: #f59e0b !important;
+  text-decoration: none !important;
+  padding: 4px 6px;
+}
+
+.btn-noti .noti-count,
+.btn-noti .dot {
+  font-size: 12px;
+  font-weight: 800;
+  color: #d97706;
+  background: transparent;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 30px;
+  padding: 4px 14px 4px 5px;
+  transition: all 0.2s ease;
+}
+
+.user-chip:hover {
+  border-color: #4ade80;
+  background: #dcfce7;
+}
+
+.user-chip .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13.5px;
+  display: grid;
+  place-items: center;
+}
+
+.user-chip .user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.user-chip .uname {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.user-chip .urole {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #16a34a;
+  margin: 0;
+}
+
+.lnk-logout {
+  color: #64748b !important;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.lnk-logout:hover {
+  color: #ef4444 !important;
+  background: #fef2f2;
+}
+
+/* 7.3. Thanh Ticker Bar Xanh Bạc Hà (Light Mint LIVE ARENA Bar) */
+.sport-live-ticker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ecfdf5 !important;
+  border-bottom: 1px solid #bbf7d0 !important;
+  color: #1e293b;
+  min-height: 38px;
+  padding: 4px 24px;
+  gap: 16px;
+  overflow: hidden;
+  position: relative;
+  z-index: 90;
+}
+
+.arena-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.arena-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: #ef4444;
+  color: #ffffff;
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.arena-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.arena-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sport-live-ticker .ticker-track {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sport-live-ticker .ticker-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.arena-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155 !important;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none !important;
+}
+
+.arena-pill:hover {
+  color: #16a34a !important;
+}
+
+.arena-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.arena-quick-link {
+  color: #15803d !important;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-decoration: none !important;
+}
+
+/* 7.4. Bố Cục Khung App 2 Cột & Sidebar Trắng (Clean White Left Sidebar) */
+.layout.one,
+.hp-wrap {
+  max-width: 1400px !important;
+  margin: 18px auto 36px !important;
+  padding: 0 20px !important;
+  display: grid !important;
+  grid-template-columns: 230px minmax(0, 1fr) !important;
+  gap: 22px !important;
+  align-items: start !important;
+}
+
+.side,
+.hp-side {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  padding: 16px 14px !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03) !important;
+  position: sticky;
+  top: 82px;
+}
+
+.side-user-card {
+  background: #f0fdf4 !important;
+  border: 1px solid #dcfce7 !important;
+  border-radius: 14px !important;
+  padding: 18px 12px !important;
+  text-align: center !important;
+  margin-bottom: 16px !important;
+  box-shadow: none !important;
+}
+
+.side-user-card .side-avatar {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50% !important;
+  background: #16a34a !important;
+  color: #ffffff !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  display: grid !important;
+  place-items: center !important;
+  margin: 0 auto 8px !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+.side-user-card .side-name {
+  color: #0f172a !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  margin-bottom: 2px;
+}
+
+.side-user-card .side-status {
+  color: #16a34a !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.side-menu-group,
+.hp-side h6 {
+  color: #94a3b8 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.8px !important;
+  text-transform: uppercase;
+  margin: 10px 8px 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.side-link,
+.hp-side a {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  margin-bottom: 3px !important;
+  text-decoration: none !important;
+  border: 0 !important;
+  transition: all 0.18s ease;
+}
+
+.side-link:hover,
+.hp-side a:hover {
+  background: #f8fafc !important;
+  color: #16a34a !important;
+}
+
+.side-link.on,
+.hp-side a.on {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  font-weight: 700 !important;
+  border-left: 3px solid #16a34a !important;
+  box-shadow: none !important;
+}
+
+.badge-mini {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+/* Thẻ Giờ Vàng Thi Đấu ở đáy Sidebar */
+.pitch-mini-card {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+  margin-top: 18px !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(4, 120, 87, 0.2);
+}
+
+.pitch-mini-card b {
+  color: #fde047 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.pitch-mini-card small {
+  color: #ecfdf5 !important;
+  font-size: 11px !important;
+  line-height: 1.45 !important;
+  margin: 0 !important;
+}
+
+/* 7.5. Tiêu Đề Đầu Trang Khách Hàng (Clean Daylight Page Header) */
+.sport-page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: transparent !important;
+  color: #0f172a !important;
+  padding: 4px 0 14px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin-bottom: 12px !important;
+  box-shadow: none !important;
+}
+
+.sport-page-head h2 {
+  margin: 0 0 3px;
+  font-family: var(--font-sans) !important;
+  font-style: normal !important;
+  font-size: 21px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+  color: #0f172a !important;
+}
+
+.sport-page-head small {
+  color: #64748b !important;
+  margin: 0;
+  font-size: 12.5px;
+}
+
+/* 7.6. Các Khung Box & Thẻ Trắng Sạch Sẽ (Clean White Cards) */
+.hp-main > section,
+.box {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03) !important;
+}
+
+.hp-h,
+.box .bh {
+  border-bottom: 0 !important;
+  padding-bottom: 4px !important;
+  margin-bottom: 14px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hp-h span,
+.box .bh b {
+  font-family: var(--font-sans) !important;
+  font-style: normal !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  color: #0f172a !important;
+  border-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* 7.7. Nút Bấm Chuẩn Xanh Sân Cỏ (Clean Emerald Action Buttons) */
+.btn {
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px;
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-radius: 9px !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.22) !important;
+  transition: all 0.18s ease;
+}
+
+.btn:hover {
+  background: #15803d !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.3) !important;
+}
+
+.btn.outline {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+.btn.outline:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+.btn.bl {
+  background: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22) !important;
+}
+
+.btn.red {
+  background: #ef4444 !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.22) !important;
+}
+
+/* ==========================================================================
+   8. GIAO DIỆN ĐĂNG NHẬP / ĐĂNG KÝ CR7 (SCREENS 03 & 04) & HERO BANNER (01)
+   ========================================================================== */
+
+body.auth.auth-mint-bg {
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(16, 185, 129, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(5, 150, 105, 0.18) 0%, transparent 50%),
+    linear-gradient(135deg, #a7d7c5 0%, #ccebd9 45%, #e6f5ec 100%) !important;
+  padding: 32px 20px;
+}
+
+.auth-split-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 920px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Thẻ Poster Ảnh CR7 Bên Trái (Overlapped by Form Box on Right) */
+.auth-cr7-card {
+  position: relative;
+  width: 500px;
+  min-height: 410px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #064e3b url('../images/cr7-celebration.jpg') center center / cover no-repeat;
+  box-shadow: 0 24px 50px rgba(6, 78, 59, 0.28);
+  border: 3px solid rgba(255, 255, 255, 0.65);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 24px;
+  z-index: 1;
+}
+
+.auth-cr7-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 78, 59, 0.1) 0%,
+    rgba(6, 78, 59, 0.25) 55%,
+    rgba(2, 44, 34, 0.85) 100%
+  );
+  pointer-events: none;
+}
+
+.cr7-sig-overlay {
+  position: absolute;
+  right: 36px;
+  top: 38%;
+  font-family: 'Brush Script MT', 'Segoe Script', cursive;
+  font-size: 44px;
+  color: rgba(255, 255, 255, 0.92);
+  transform: rotate(-12deg);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cr7-bottom-caption {
+  position: relative;
+  z-index: 2;
+  color: #ffffff;
+  margin-bottom: 34px;
+}
+
+.cr7-bottom-caption .siuuu-line {
+  font-family: var(--font-sport, 'Chakra Petch', sans-serif);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cr7-bottom-caption .siuuu-line span {
+  font-size: 38px;
+  color: #ffffff;
+}
+
+.cr7-bottom-caption small {
+  color: #d1fae5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.cr7-white-dock {
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  width: 310px;
+  height: 36px;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.cr7-white-dock .dock-ball {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  margin-top: -18px;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
+}
+
+/* Thẻ Form Trắng Bên Phải (.auth-box) chồng nhẹ lên Poster CR7 */
+.auth-split-wrap .auth-box {
+  position: relative;
+  z-index: 3;
+  width: 410px !important;
+  margin-left: -42px;
+  background: #ffffff !important;
+  border-radius: 22px !important;
+  padding: 30px 30px 26px !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16) !important;
+}
+
+@media (max-width: 860px) {
+  .auth-split-wrap {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .auth-cr7-card {
+    width: 100%;
+    min-height: 280px;
+  }
+  .auth-split-wrap .auth-box {
+    width: 100% !important;
+    margin-left: 0;
+  }
+  .layout.one,
+  .hp-wrap {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   14. CHÂN TRANG ĐẦY ĐỦ SÂN BÓNG PRO (FULL 4-COLUMN SPORT FOOTER)
+   ========================================================================== */
+.sb-pro-footer {
+  background: #ffffff;
+  border-top: 1px solid #d1fae5;
+  margin-top: 28px;
+  color: #334155;
+  font-size: 13px;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.02);
+}
+
+.sb-foot-top-strip {
+  background: linear-gradient(90deg, #064e3b 0%, #047857 50%, #16a34a 100%);
+  color: #ffffff;
+  padding: 14px 28px;
+}
+
+.sb-foot-top-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.sb-foot-cta-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.sb-foot-cta-text span.cta-badge {
+  background: #f59e0b;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.sb-foot-cta-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sb-foot-cta-btn {
+  background: #ffffff;
+  color: #065f46 !important;
+  font-weight: 800;
+  font-size: 12.5px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  text-decoration: none !important;
+  transition: all 0.18s ease;
+}
+
+.sb-foot-cta-btn:hover {
+  background: #dcfce7;
+  transform: translateY(-1px);
+}
+
+.sb-foot-cta-btn.outline {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.sb-foot-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 28px 24px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.2fr;
+  gap: 32px;
+}
+
+.sb-foot-col h4 {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sb-foot-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a !important;
+  text-decoration: none !important;
+  margin-bottom: 10px;
+}
+
+.sb-foot-brand .logo-ball {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  display: inline-grid;
+  place-items: center;
+  font-size: 16px;
+}
+
+.sb-foot-brand .pro-pill {
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.sb-foot-desc {
+  color: #64748b;
+  font-size: 12.8px;
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.sb-foot-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sb-foot-badges span {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.sb-foot-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sb-foot-links li a,
+.sb-foot-links li span {
+  color: #475569;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.15s ease;
+}
+
+.sb-foot-links li a:hover {
+  color: #16a34a;
+  transform: translateX(3px);
+}
+
+.sb-foot-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sb-foot-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.8px;
+  color: #475569;
+}
+
+.sb-foot-contact-item b {
+  color: #0f172a;
+}
+
+.sb-foot-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #ecfdf5;
+  color: #15803d !important;
+  border: 1px solid #86efac;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.sb-foot-ai-btn:hover {
+  background: #16a34a;
+  color: #ffffff !important;
+}
+
+.sb-foot-bottom {
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+  padding: 14px 28px;
+}
+
+.sb-foot-bottom-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.sb-foot-pay-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sb-foot-pay-tags span {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .sb-foot-main {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .sb-foot-main {
+    grid-template-columns: 1fr;
+  }
+}
