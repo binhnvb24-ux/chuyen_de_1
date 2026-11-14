@@ -79,9 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         );
                     }
 
-                    notify($u['id'], "↩ Đã hủy hợp lệ đơn #{$b['id']} ({$b['name']} ngày {$formatted_date})." . ($paidAmt > 0 ? " Đã hoàn " . money($paidAmt) . " vào Ví nội bộ." : ""));
+                    notify($u['id'], "↩ Đã hủy hợp lệ đơn #{$b['id']} ({$b['name']} ngày {$formatted_date})." . ($paidAmt > 0 ? " Hệ thống đã ghi nhận hoàn trả 100% (" . money($paidAmt) . ")." : ""));
                     $pdo->commit();
-                    flash('cancel', "Đã hủy lịch đặt {$b['name']} ngày {$formatted_date} hợp lệ." . ($paidAmt > 0 ? " Hoàn 100% (" . money($paidAmt) . ") vào Ví nội bộ!" : ""));
+                    flash('cancel', "Đã hủy lịch đặt {$b['name']} ngày {$formatted_date} hợp lệ." . ($paidAmt > 0 ? " Hệ thống đã ghi nhận hoàn trả 100% (" . money($paidAmt) . ")!" : ""));
                 } else {
                     // Hủy sát giờ (< 2 tiếng trước giờ bóng lăn): Cảnh báo & Trừ -15 điểm uy tín
                     $pdo->prepare("

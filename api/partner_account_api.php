@@ -75,7 +75,7 @@ if ($action === 'preview_cancel_booking') {
     $kickoffTs = strtotime($bk['booking_date'] . ' ' . $bk['start_time']);
     $secondsLeft = $kickoffTs - time();
     $hoursLeft = round($secondsLeft / 3600, 1);
-    $isPaid = ($bk['pay_status'] === 'paid' || $bk['status'] === 'confirmed');
+    $isPaid = ($bk['pay_status'] === 'paid');
     $refundAmount = $isPaid ? (int)($bk['paid_amount'] ?: $bk['total_price']) : 0;
 
     if ($secondsLeft >= 7200) {
@@ -86,7 +86,7 @@ if ($action === 'preview_cancel_booking') {
             'refund_amount'    => $refundAmount,
             'reputation_delta' => 0,
             'policy_message'   => $refundAmount > 0
-                ? "Hủy hợp lệ trước giờ bóng lăn ({$hoursLeft} giờ): Hoàn lại 100% (" . money($refundAmount) . ") vào Ví nội bộ, không bị trừ điểm uy tín."
+                ? "Hủy hợp lệ trước giờ bóng lăn ({$hoursLeft} giờ): Hoàn trả 100% (" . money($refundAmount) . "), không bị trừ điểm uy tín."
                 : "Hủy hợp lệ trước giờ bóng lăn ({$hoursLeft} giờ): Không bị trừ điểm uy tín.",
         ], JSON_UNESCAPED_UNICODE);
     } else {

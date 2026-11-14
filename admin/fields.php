@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id        = (int)($_POST['id'] ?? 0);
     $parent_id = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
     $owner_id  = !empty($_POST['owner_id']) ? (int)$_POST['owner_id'] : null;
-    if ($parent_id === $id) {
+    if ($parent_id === $id || ($id > 0 && function_exists('field_parent_creates_cycle') && field_parent_creates_cycle($id, $parent_id))) {
         $parent_id = null;
     }
 
@@ -93,8 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'type'        => $_POST['type'] ?? '5',
         'address'     => trim($_POST['address'] ?? ''),
         'district'    => trim($_POST['district'] ?? ''),
-        'latitude'    => !empty($_POST['latitude']) ? (float)$_POST['latitude'] : 10.7769,
-        'longitude'   => !empty($_POST['longitude']) ? (float)$_POST['longitude'] : 106.7009,
+        'latitude'    => !empty($_POST['latitude']) ? (float)$_POST['latitude'] : 10.8058333,
+        'longitude'   => !empty($_POST['longitude']) ? (float)$_POST['longitude'] : 106.6583333,
+        'gmap_url'    => trim($_POST['google_maps_url'] ?? ''),
         'price'       => (int)($_POST['price'] ?? 0),
         'description' => trim($_POST['description'] ?? ''),
         'status'      => $_POST['status'] ?? 'active'
@@ -124,11 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("
             UPDATE fields
             SET owner_id=?, parent_id=?, pitch_code=?, name=?, type=?, address=?, district=?,
-                latitude=?, longitude=?, price_per_hour=?, description=?, status=?
+                latitude=?, longitude=?, google_maps_url=?, price_per_hour=?, description=?, status=?
             WHERE id=?
         ")->execute([
             $d['owner_id'], $d['parent_id'], $d['pitch_code'], $d['name'], $d['type'],
             $d['address'], $d['district'], $d['latitude'], $d['longitude'],
+            ($d['gmap_url'] ?: "https://www.google.com/maps/dir/?api=1&destination={$d['latitude']},{$d['longitude']}"),
             $d['price'], $d['description'], $d['status'], $id
         ]);
 
@@ -140,16 +142,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $final_img = $img ?: 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=600';
 
+        $venueId = null;
+        if ($d['parent_id']) {
+            $stPV = $pdo->prepare("SELECT venue_id FROM fields WHERE id = ?");
+            $stPV->execute([$d['parent_id']]);
+            $venueId = $stPV->fetchColumn() ?: null;
+        }
+        if (!$venueId && $d['owner_id']) {
+            $stOV = $pdo->prepare("SELECT id FROM venues WHERE owner_id = ? ORDER BY id ASC LIMIT 1");
+            $stOV->execute([$d['owner_id']]);
+            $venueId = $stOV->fetchColumn() ?: null;
+        }
+
         $pdo->prepare("
             INSERT INTO fields (
-                owner_id, parent_id, pitch_code, name, type, address, district,
-                latitude, longitude, price_per_hour, description, status, image
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                venue_id, owner_id, parent_id, pitch_code, name, type, address, district,
+                latitude, longitude, price_per_hour, normal_price, peak_price, description, status, image
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ")->execute([
-            $d['owner_id'], $d['parent_id'], $d['pitch_code'], $d['name'], $d['type'],
+            $venueId, $d['owner_id'], $d['parent_id'], $d['pitch_code'], $d['name'], $d['type'],
             $d['address'], $d['district'], $d['latitude'], $d['longitude'],
-            $d['price'], $d['description'], $d['status'], $final_img
+            $d['price'], $d['price'], (int)round($d['price'] * 1.4), $d['description'], $d['status'], $final_img
         ]);
+        $newFieldId = (int)$pdo->lastInsertId();
+
+        if ($newFieldId > 0) {
+            $baseP = (int)$d['price'];
+            $peakP = (int)round($baseP * 1.35);
+            $stPr = $pdo->prepare("INSERT INTO pricing_rules (field_id, day_type, start_time, end_time, price_per_hour, label) VALUES (?, ?, ?, ?, ?, ?)");
+            $stPr->execute([$newFieldId, 'WEEKDAY', '05:00:00', '16:00:00', $baseP, 'Giờ thường ban ngày']);
+            $stPr->execute([$newFieldId, 'WEEKDAY', '16:00:00', '20:30:00', $peakP, '🔥 Giờ Vàng cao điểm']);
+            $stPr->execute([$newFieldId, 'WEEKDAY', '20:30:00', '23:00:00', (int)round(($baseP + $peakP) / 2), 'Giờ tối muộn']);
+            $stPr->execute([$newFieldId, 'WEEKEND', '05:00:00', '16:00:00', (int)round($baseP * 1.15), 'Cuối tuần ban ngày']);
+            $stPr->execute([$newFieldId, 'WEEKEND', '16:00:00', '23:00:00', (int)round($peakP * 1.1), '🔥 Cuối tuần Giờ Vàng']);
+        }
 
         rebuild_field_conflict_map();
         flash('ok', 'Đã thêm sân mới thành công.');
@@ -299,27 +325,107 @@ include '../includes/admin_header.php';
                 <?php endforeach; ?>
             </select>
 
+            <?php $adminPresetCatalog = function_exists('get_verified_hcmc_pitches_catalog') ? get_verified_hcmc_pitches_catalog() : []; ?>
+            <label>📌 Chọn nhanh tọa độ chuẩn từ 10 Cụm Sân Thực Tế TP.HCM</label>
+            <select onchange="applyAdminFieldPreset(this)" style="margin-bottom:10px">
+                <option value="">-- Chọn cụm sân mẫu để tự động điền Địa chỉ & Tọa độ GPS chuẩn --</option>
+                <?php foreach ($adminPresetCatalog as $apc): ?>
+                    <option value="<?= e(json_encode(['lat'=>$apc['lat'],'lng'=>$apc['lng'],'addr'=>$apc['address'],'dist'=>$apc['district'],'gmap'=>$apc['gmap']], JSON_UNESCAPED_UNICODE)) ?>">
+                        ⚽ <?= e($apc['name']) ?> — <?= e($apc['district']) ?> (<?= number_format($apc['lat'], 6) ?>, <?= number_format($apc['lng'], 6) ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
             <div class="two" style="margin-bottom:0">
                 <div>
                     <label>Địa chỉ chi tiết *</label>
-                    <input name="address" required value="<?= e($form['address']) ?>">
+                    <input name="address" id="admFieldAddr" required value="<?= e($form['address']) ?>">
                 </div>
                 <div>
                     <label>Quận / Huyện</label>
-                    <input name="district" value="<?= e($form['district']) ?>">
+                    <input name="district" id="admFieldDist" value="<?= e($form['district']) ?>">
                 </div>
             </div>
 
             <div class="two" style="margin-bottom:0">
                 <div>
-                    <label>Vĩ độ (Latitude)</label>
-                    <input type="number" step="any" name="latitude" value="<?= e($form['latitude'] ?? 10.7991) ?>">
+                    <label>Vĩ độ GPS (Latitude)</label>
+                    <input type="number" step="0.0000001" name="latitude" id="admFieldLat" value="<?= e($form['latitude'] ?? 10.8058333) ?>" oninput="syncAdminFieldPin()">
                 </div>
                 <div>
-                    <label>Kinh độ (Longitude)</label>
-                    <input type="number" step="any" name="longitude" value="<?= e($form['longitude'] ?? 106.6650) ?>">
+                    <label>Kinh độ GPS (Longitude)</label>
+                    <input type="number" step="0.0000001" name="longitude" id="admFieldLng" value="<?= e($form['longitude'] ?? 106.6583333) ?>" oninput="syncAdminFieldPin()">
                 </div>
             </div>
+
+            <label>🧭 Link Google Maps chỉ đường (Place ID / Tọa độ)</label>
+            <input name="google_maps_url" id="admFieldGmap" value="<?= e($form['google_maps_url'] ?? '') ?>" placeholder="https://www.google.com/maps/dir/?api=1&destination=...">
+
+            <div style="margin:10px 0 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <label style="margin:0">🛰 Bản đồ Định vị Mặt sân (Kéo thả ghim hoặc click lên mặt cỏ vệ tinh)</label>
+                    <div style="display:flex;gap:6px">
+                        <button type="button" class="btn sm" onclick="setAdminFieldMapMode('sat')">🛰 Vệ tinh sân cỏ</button>
+                        <button type="button" class="btn sm gray" onclick="setAdminFieldMapMode('street')">🗺 Đường phố</button>
+                    </div>
+                </div>
+                <div id="adminFieldMapPicker" style="width:100%;height:280px;border-radius:12px;border:2px solid #10b981;overflow:hidden"></div>
+            </div>
+            <script>
+              var admMap = null, admMarker = null, admLayers = {};
+              document.addEventListener('DOMContentLoaded', function () {
+                var el = document.getElementById('adminFieldMapPicker');
+                if (!el || typeof L === 'undefined') return;
+                var lat = parseFloat(document.getElementById('admFieldLat').value) || 10.8058333;
+                var lng = parseFloat(document.getElementById('admFieldLng').value) || 106.6583333;
+                admMap = L.map('adminFieldMapPicker').setView([lat, lng], 18);
+                admLayers.sat = L.tileLayer('https://{s}.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}', {
+                  maxZoom: 20, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google Satellite'
+                });
+                admLayers.street = L.tileLayer('https://{s}.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
+                  maxZoom: 20, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google Maps'
+                });
+                admLayers.sat.addTo(admMap);
+                admMarker = L.marker([lat, lng], { draggable: true }).addTo(admMap)
+                  .bindPopup('<b>📍 Vị trí Sân bóng</b><br>Kéo thả ghim để cập nhật tọa độ chuẩn').openPopup();
+                var updateAdmCoords = function (lt, lg) {
+                  document.getElementById('admFieldLat').value = lt.toFixed(7);
+                  document.getElementById('admFieldLng').value = lg.toFixed(7);
+                  document.getElementById('admFieldGmap').value = 'https://www.google.com/maps/dir/?api=1&destination=' + lt.toFixed(7) + ',' + lg.toFixed(7);
+                };
+                admMarker.on('dragend', function (e) {
+                  var p = e.target.getLatLng();
+                  updateAdmCoords(p.lat, p.lng);
+                });
+                admMap.on('click', function (e) {
+                  admMarker.setLatLng(e.latlng);
+                  updateAdmCoords(e.latlng.lat, e.latlng.lng);
+                });
+              });
+              function setAdminFieldMapMode(m) {
+                if (!admMap) return;
+                if (m === 'sat') { admMap.removeLayer(admLayers.street); admLayers.sat.addTo(admMap); }
+                else { admMap.removeLayer(admLayers.sat); admLayers.street.addTo(admMap); }
+              }
+              function syncAdminFieldPin() {
+                if (!admMap || !admMarker) return;
+                var lt = parseFloat(document.getElementById('admFieldLat').value);
+                var lg = parseFloat(document.getElementById('admFieldLng').value);
+                if (!isNaN(lt) && !isNaN(lg)) { admMarker.setLatLng([lt, lg]); admMap.panTo([lt, lg]); }
+              }
+              function applyAdminFieldPreset(sel) {
+                if (!sel || !sel.value) return;
+                try {
+                  var d = JSON.parse(sel.value);
+                  document.getElementById('admFieldLat').value = Number(d.lat).toFixed(7);
+                  document.getElementById('admFieldLng').value = Number(d.lng).toFixed(7);
+                  if (d.addr) document.getElementById('admFieldAddr').value = d.addr;
+                  if (d.dist) document.getElementById('admFieldDist').value = d.dist;
+                  if (d.gmap) document.getElementById('admFieldGmap').value = d.gmap;
+                  if (admMarker && admMap) { admMarker.setLatLng([d.lat, d.lng]); admMap.flyTo([d.lat, d.lng], 18); }
+                } catch (e) {}
+              }
+            </script>
 
             <div class="two" style="margin-bottom:0">
                 <div>
@@ -348,33 +454,40 @@ include '../includes/admin_header.php';
     </div>
 <?php else: ?>
     <!-- Bảng Tổng hợp Đối soát Doanh thu theo Chủ sân (Module 3 Reconciliation) -->
-    <?php if ($reconcileRows): ?>
+    <?php if ($reconcileRows):
+        $afFeePct = get_platform_fee_percent();
+        $afNetPct = 100 - $afFeePct;
+    ?>
         <div class="box" style="margin-bottom:18px;border-left:4px solid #10b981">
             <div class="bh">
-                <b>💰 Bảng Tổng Hợp Đối Soát Doanh Thu Theo Chủ Sân Đối Tác (<?= count($reconcileRows) ?> Chủ sân)</b>
-                <a href="partners.php" class="btn sm bl">🤝 Duyệt Hồ Sơ Mở Sân</a>
+                <b>💰 Bảng Tổng Hợp Dòng Tiền Về TK Admin & Đối Soát Chủ Sân Sau Trừ Phí Sàn (<?=$afFeePct?>%)</b>
+                <a href="revenue.php" class="btn sm bl">📈 Chi Tiết Doanh Thu & Phí Sàn →</a>
             </div>
             <div class="tw">
                 <table>
                     <tr>
                         <th>Chủ sân Đối tác</th>
-                        <th>Liên hệ</th>
-                        <th>Số lượng sân</th>
-                        <th>Tổng lượt đặt</th>
-                        <th>Doanh thu đối soát</th>
+                        <th>Số sân / Số đơn</th>
+                        <th>Tổng thu về TK Admin (100%)</th>
+                        <th>Phí sàn Admin giữ (<?=$afFeePct?>%)</th>
+                        <th>Chủ sân thực nhận (<?=$afNetPct?>%)</th>
                         <th>Tài khoản Ngân hàng nhận đối soát</th>
                         <th>Lọc sân</th>
                     </tr>
-                    <?php foreach ($reconcileRows as $rc): ?>
+                    <?php foreach ($reconcileRows as $rc):
+                        $rcGross = (int)$rc['total_revenue'];
+                        $rcFee   = (int)round($rcGross * ($afFeePct / 100));
+                        $rcNet   = max(0, $rcGross - $rcFee);
+                    ?>
                         <tr>
                             <td>
                                 <b><?= e($rc['full_name']) ?></b>
-                                <small style="display:block">@<?= e($rc['username']) ?></small>
+                                <small style="display:block">@<?= e($rc['username']) ?> • 📞 <?= e($rc['phone']) ?></small>
                             </td>
-                            <td><?= e($rc['phone']) ?></td>
-                            <td><b><?= (int)$rc['pitch_count'] ?></b> sân</td>
-                            <td><b><?= (int)$rc['booking_count'] ?></b> đơn</td>
-                            <td><b style="color:#10b981;font-size:15px"><?= money($rc['total_revenue']) ?></b></td>
+                            <td><b><?= (int)$rc['pitch_count'] ?></b> sân • <b><?= (int)$rc['booking_count'] ?></b> đơn</td>
+                            <td><b><?= money($rcGross) ?></b></td>
+                            <td style="color:#f59e0b"><b>-<?= money($rcFee) ?></b></td>
+                            <td><b style="color:#10b981;font-size:15px"><?= money($rcNet) ?></b></td>
                             <td><small><?= e($rc['bank_info'] ?: 'Thanh toán qua tài khoản hệ thống') ?></small></td>
                             <td>
                                 <a class="btn sm <?= $ownerFilter === (int)$rc['owner_id'] ? '' : 'gray' ?>" href="?owner_id=<?= (int)$rc['owner_id'] ?>">
@@ -447,7 +560,9 @@ include '../includes/admin_header.php';
                             </td>
                             <td>
                                 <?= e($r['address']) ?>
-                                <small style="display:block"><?= e($r['district']) ?></small>
+                                <small style="display:block"><?= e($r['district']) ?> • 🌐 <code><?= number_format((float)($r['latitude'] ?? 10.8058333), 5) ?>, <?= number_format((float)($r['longitude'] ?? 106.6583333), 5) ?></code></small>
+                                <?php $rGmap = !empty($r['google_maps_url']) ? $r['google_maps_url'] : ('https://www.google.com/maps/dir/?api=1&destination=' . ($r['latitude'] ?? 10.8058333) . ',' . ($r['longitude'] ?? 106.6583333)); ?>
+                                <a href="<?= e($rGmap) ?>" target="_blank" rel="noopener" style="font-size:11.5px;color:#10b981;font-weight:700;text-decoration:none">🧭 Mở Google Maps ↗</a>
                             </td>
                             <td><b><?= money($r['price_per_hour']) ?></b></td>
                             <td>

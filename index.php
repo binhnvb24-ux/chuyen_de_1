@@ -118,18 +118,23 @@ if ($max) {
     $p[]  = $max;
 }
 
-// Nối thêm điều kiện kiểm tra sân còn trống trong Ngày & Khung giờ người dùng chọn
+// Nối thêm điều kiện kiểm tra sân còn trống trong Ngày & Khung giờ người dùng chọn (tính cả khóa chéo Cha-Con & HOLD 10p)
 if ($date && $start) {
     $end  = sprintf('%02d:00', (int)$start + 1);
     $sql .= " AND NOT EXISTS (
-                SELECT 1 FROM bookings b
-                WHERE b.field_id = f.id
+                SELECT 1
+                FROM field_conflict_map fcm
+                INNER JOIN bookings b ON b.field_id = fcm.conflict_field_id
+                WHERE fcm.field_id = f.id
                   AND b.booking_date = ?
-                  AND b.status IN ('pending', 'confirmed', 'completed')
+                  AND (
+                      b.status IN ('confirmed', 'completed')
+                      OR (b.status = 'pending' AND (b.hold_expires_at IS NULL OR b.hold_expires_at > NOW()))
+                  )
                   AND b.start_time < ?
                   AND b.end_time > ?
               )";
-    array_push($p, $date, $end, $start);
+    array_push($p, $date, $end . ':00', $start . ':00');
 }
 
 // ----------------------------------------------------------------------------
@@ -175,8 +180,8 @@ $PresetDistricts = [
         'stop_tag'  => 'Điểm dừng 1 & 2',
         'highlight' => 'Sân Banh Chảo Lửa & Sân K34',
         'sub_info'  => 'Phan Thúc Duyện & Bạch Đằng • Sân 5-7-11',
-        'lat'       => 10.8016800,
-        'lng'       => 106.6626100,
+        'lat'       => 10.8058333,
+        'lng'       => 106.6583333,
         'focus_fid' => 1,
         'image'     => 'assets/images/field-1.jpg',
         'rating'    => '4.3 (3.6K+)',
@@ -187,8 +192,8 @@ $PresetDistricts = [
         'stop_tag'  => 'Điểm dừng 3',
         'highlight' => 'Sân vận động Gia Định',
         'sub_info'  => '2A Phan Chu Trinh • Sân 11 chuẩn & sân 5-7',
-        'lat'       => 10.8087500,
-        'lng'       => 106.6961500,
+        'lat'       => 10.8145300,
+        'lng'       => 106.7023700,
         'focus_fid' => 3,
         'image'     => 'assets/images/field-3.jpg',
         'rating'    => '4.3/5',
@@ -199,8 +204,8 @@ $PresetDistricts = [
         'stop_tag'  => 'Điểm dừng 4',
         'highlight' => 'Nhà Tập Luyện Phú Thọ',
         'sub_info'  => '219 Lý Thường Kiệt • Mở cửa 05:00 – 23:00',
-        'lat'       => 10.7694500,
-        'lng'       => 106.6579200,
+        'lat'       => 10.7686111,
+        'lng'       => 106.6575000,
         'focus_fid' => 4,
         'image'     => 'assets/images/field-1.jpg',
         'rating'    => '4.4/5',
@@ -211,8 +216,8 @@ $PresetDistricts = [
         'stop_tag'  => 'Điểm dừng 5',
         'highlight' => 'Sân banh Tao Đàn',
         'sub_info'  => 'Huyền Trân Công Chúa, Bến Thành • Sân 5-7-11',
-        'lat'       => 10.7751200,
-        'lng'       => 106.6928500,
+        'lat'       => 10.7744400,
+        'lng'       => 106.6925000,
         'focus_fid' => 5,
         'image'     => 'assets/images/field-2.jpg',
         'rating'    => '4.2/5',
@@ -223,8 +228,8 @@ $PresetDistricts = [
         'stop_tag'  => 'Điểm dừng 6',
         'highlight' => 'SVĐ ĐH Tôn Đức Thắng',
         'sub_info'  => 'Đường D6, Tân Hưng • Chuẩn FIFA 2 sao',
-        'lat'       => 10.7326500,
-        'lng'       => 106.6997800,
+        'lat'       => 10.7326800,
+        'lng'       => 106.6997500,
         'focus_fid' => 6,
         'image'     => 'assets/images/field-3.jpg',
         'rating'    => '4.7/5',
@@ -274,8 +279,8 @@ $famousStops = [
         'contact'    => '📞 0777 700 000',
         'rating_txt' => '4.3/5 (3.600+ đánh giá)',
         'scale'      => 'Quy mô lớn gồm nhiều sân 5 và 7 người liên hoàn, ghép thành sân 11 người tiêu chuẩn.',
-        'lat'        => 10.8016800,
-        'lng'        => 106.6626100,
+        'lat'        => 10.8058333,
+        'lng'        => 106.6583333,
         'price'      => 300000,
         'image'      => 'assets/images/field-1.jpg',
     ],
@@ -288,8 +293,8 @@ $famousStops = [
         'contact'    => '📞 0908 787 798',
         'rating_txt' => '4.2/5',
         'scale'      => 'Hệ thống sân cỏ nhân tạo có mái che cực kỳ thoáng mát, thi đấu bất chấp nắng mưa.',
-        'lat'        => 10.8132500,
-        'lng'        => 106.6694200,
+        'lat'        => 10.8141200,
+        'lng'        => 106.6698500,
         'price'      => 260000,
         'image'      => 'assets/images/field-2.jpg',
     ],
@@ -302,8 +307,8 @@ $famousStops = [
         'contact'    => '🕒 Mở cửa: 05:30 – 22:00',
         'rating_txt' => '4.3/5',
         'scale'      => 'Tổ hợp SVĐ lớn có mặt sân 11 người chuẩn thi đấu và cụm sân 5 - 7 người vệ tinh xung quanh.',
-        'lat'        => 10.8087500,
-        'lng'        => 106.6961500,
+        'lat'        => 10.8145300,
+        'lng'        => 106.7023700,
         'price'      => 350000,
         'image'      => 'assets/images/field-3.jpg',
     ],
@@ -316,8 +321,8 @@ $famousStops = [
         'contact'    => '🕒 Mở cửa: 05:00 – 23:00',
         'rating_txt' => '4.4/5',
         'scale'      => 'Nằm trong khu liên hợp thể thao SVĐ Phú Thọ, mặt cỏ đạt chuẩn, dễ kết nối từ trung tâm.',
-        'lat'        => 10.7694500,
-        'lng'        => 106.6579200,
+        'lat'        => 10.7686111,
+        'lng'        => 106.6575000,
         'price'      => 250000,
         'image'      => 'assets/images/field-1.jpg',
     ],
@@ -330,8 +335,8 @@ $famousStops = [
         'contact'    => '📞 028 3822 4158',
         'rating_txt' => '4.2/5',
         'scale'      => 'Nằm ngay "lá phổi xanh" trung tâm thành phố, mặt sân 11 người chia tách linh hoạt sân 7 & 5.',
-        'lat'        => 10.7751200,
-        'lng'        => 106.6928500,
+        'lat'        => 10.7744400,
+        'lng'        => 106.6925000,
         'price'      => 320000,
         'image'      => 'assets/images/field-2.jpg',
     ],
@@ -344,8 +349,8 @@ $famousStops = [
         'contact'    => '📞 028 3775 5035',
         'rating_txt' => '4.7/5 (FIFA 2 sao)',
         'scale'      => 'SVĐ đạt chuẩn FIFA 2 sao với mặt cỏ cực đẹp, khán đài lớn và đường chạy điền kinh bao quanh.',
-        'lat'        => 10.7326500,
-        'lng'        => 106.6997800,
+        'lat'        => 10.7326800,
+        'lng'        => 106.6997500,
         'price'      => 400000,
         'image'      => 'assets/images/field-3.jpg',
     ],
@@ -367,10 +372,15 @@ foreach ($goldenWindows as $gw) {
         FROM fields f
         WHERE f.status = 'active'
           AND NOT EXISTS (
-              SELECT 1 FROM bookings b
-              WHERE b.field_id = f.id
+              SELECT 1
+              FROM field_conflict_map fcm
+              INNER JOIN bookings b ON b.field_id = fcm.conflict_field_id
+              WHERE fcm.field_id = f.id
                 AND b.booking_date = ?
-                AND b.status IN ('pending', 'confirmed', 'completed')
+                AND (
+                    b.status IN ('confirmed', 'completed')
+                    OR (b.status = 'pending' AND (b.hold_expires_at IS NULL OR b.hold_expires_at > NOW()))
+                )
                 AND b.start_time < ?
                 AND b.end_time > ?
           )
@@ -395,14 +405,18 @@ foreach ($goldenWindows as $gw) {
     ];
 }
 
-// 3.3. Lấy danh sách ID các sân đang có trận đấu diễn ra ngay tại thời điểm hiện tại
+// 3.3. Lấy danh sách ID các sân đang có trận đấu diễn ra (bao gồm khóa chéo Cha-Con & HOLD còn hạn)
 $busyNow = $pdo->query("
-    SELECT DISTINCT field_id
-    FROM bookings
-    WHERE booking_date = CURDATE()
-      AND status IN ('pending', 'confirmed')
-      AND start_time <= CURTIME()
-      AND end_time > CURTIME()
+    SELECT DISTINCT fcm.field_id
+    FROM field_conflict_map fcm
+    INNER JOIN bookings b ON b.field_id = fcm.conflict_field_id
+    WHERE b.booking_date = CURDATE()
+      AND (
+          b.status IN ('confirmed', 'completed')
+          OR (b.status = 'pending' AND (b.hold_expires_at IS NULL OR b.hold_expires_at > NOW()))
+      )
+      AND b.start_time <= CURTIME()
+      AND b.end_time > CURTIME()
 ")->fetchAll(PDO::FETCH_COLUMN);
 
 // 3.4. Thống kê số lượng sân và giá thấp nhất theo từng thể thức (Sân 5, Sân 7, Sân 11)
@@ -555,7 +569,7 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
               <?php elseif (is_pitch_owner($u)): ?>
                 🏟 Chủ sân đối tác • Hồ sơ
               <?php else: ?>
-                🛡️ <?=(int)($u['reputation_score'] ?? 100)?>đ • 💰 <?=money($u['wallet_balance'] ?? 0)?>
+                ⚽ Cầu thủ • 🛡️ Uy tín <?=(int)($u['reputation_score'] ?? 100)?>/100
               <?php endif; ?>
             </small>
           </div>
@@ -619,8 +633,18 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
           <?=e(mb_substr($u['full_name'] ?? 'N', 0, 1))?>
         <?php endif; ?>
       </div>
-      <div class="side-name"><?=e($u['full_name'] ?? 'Nguyễn Văn A')?></div>
-      <div class="side-status">● Đội trưởng FC</div>
+      <div class="side-name"><?=e($u['full_name'] ?? 'Khách tham quan')?></div>
+      <div class="side-status">
+        <?php if ($u && get_user_role_code($u) === 'ADMIN'): ?>
+          ● Quản trị viên hệ thống
+        <?php elseif ($u && is_pitch_owner($u)): ?>
+          ● Chủ sân đối tác (PITCH_OWNER)
+        <?php elseif ($u): ?>
+          ● <?=e(!empty($u['team_name']) ? $u['team_name'] : 'Đội trưởng FC')?> • 🛡️ <?=(int)($u['reputation_score'] ?? 100)?>đ
+        <?php else: ?>
+          ● Chưa đăng nhập
+        <?php endif; ?>
+      </div>
     </div>
 
     <div class="side-menu-group">ĐIỀU HƯỚNG</div>
@@ -635,7 +659,7 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
         <span class="badge-mini green"><?=$unread?></span>
       <?php endif; ?>
     </a>
-    <a class="side-link" href="user/profile.php"><span>👤 Hồ sơ & Ví nội bộ</span></a>
+    <a class="side-link" href="user/profile.php"><span>👤 Thông tin cá nhân</span></a>
 
     <?php if ($u && is_pitch_owner($u)): ?>
       <a class="side-link" href="user/owner-dashboard.php"><span>🏟 Kênh Chủ Sân</span></a>
@@ -748,9 +772,18 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
         <div class="kpi-ico green">⚽</div>
       </div>
 
+      <?php
+      $weeklyBookingsCount = 12;
+      try {
+          $wCnt = (int)$pdo->query("SELECT COUNT(*) FROM bookings WHERE status <> 'cancelled' AND booking_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 3 DAY) AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)")->fetchColumn();
+          if ($wCnt > 0) {
+              $weeklyBookingsCount = $wCnt;
+          }
+      } catch (Exception $e) {}
+      ?>
       <div class="hp-kpi-card">
         <div>
-          <div class="kpi-val">12</div>
+          <div class="kpi-val"><?=$weeklyBookingsCount?></div>
           <div class="kpi-lbl">Lịch đặt trong tuần</div>
         </div>
         <div class="kpi-ico red">📅</div>
@@ -838,9 +871,19 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
       <div class="hp-area-grid">
         <!-- Cột trái: Bản đồ tương tác Leaflet.js đồng bộ trực tiếp với các thẻ khu vực -->
         <div class="hp-map-card" id="areaInteractiveMap">
-          <div class="area-map-top-bar">
-            <span class="am-live-pill"><i></i> Bản đồ trực tuyến TP.HCM</span>
-            <button type="button" class="am-reset-btn" onclick="resetAreaLeafletMap()">🔄 Toàn TP.HCM</button>
+          <div class="area-map-top-bar" style="flex-wrap:wrap;gap:6px">
+            <span class="am-live-pill"><i></i> Định vị Chuẩn Từng Sân TP.HCM</span>
+            <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+              <select id="areaQuickPitchSelect" onchange="if(this.value) focusAreaPitchOnMap(parseInt(this.value,10), this.options[this.selectedIndex].text, true)" style="padding:4px 8px;border-radius:8px;border:1px solid #cbd5e1;font-size:11.5px;font-weight:700;background:#fff;color:#0f172a;max-width:195px">
+                <option value="">🎯 Chọn nhanh sân trên bản đồ...</option>
+                <?php foreach ($pdo->query("SELECT id, name, district, pitch_code FROM fields WHERE status='active' ORDER BY id ASC")->fetchAll() as $qp): ?>
+                  <option value="<?=(int)$qp['id']?>">⚽ <?=e($qp['name'])?> (<?=e($qp['district'])?>)</option>
+                <?php endforeach; ?>
+              </select>
+              <button type="button" class="am-reset-btn" id="btnHomeMapStreet" onclick="switchAreaMapLayer('street')" style="background:#16a34a;color:#fff;border-color:#16a34a">🗺 Đường phố</button>
+              <button type="button" class="am-reset-btn" id="btnHomeMapSat" onclick="switchAreaMapLayer('sat')">🛰 Vệ tinh sân cỏ</button>
+              <button type="button" class="am-reset-btn" onclick="resetAreaLeafletMap()">🔄 Toàn TP.HCM</button>
+            </div>
           </div>
 
           <div id="areaLeafletMap" class="hp-leaflet-area-canvas"></div>
@@ -932,7 +975,12 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
                         onclick="focusAreaPitchOnMap(<?=(int)$stItem['field_id']?>, 'Điểm dừng <?=$stItem['stop_no']?>: <?=e($stItem['name'])?>', true)">
                   📍 Trên bản đồ
                 </button>
-                <a class="sic-btn dir" href="<?=e($stGmap)?>" target="_blank" rel="noopener">🧭 Chỉ đường</a>
+                <button type="button"
+                        class="sic-btn map"
+                        style="background:#ecfdf5;color:#059669;border-color:#6ee7b7"
+                        onclick="if(typeof openOwnerChatWidget==='function') openOwnerChatWidget(<?=(int)$stItem['field_id']?>)">
+                  💬 Chat Chủ sân
+                </button>
                 <a class="sic-btn book" href="user/booking.php?field_id=<?=(int)$stItem['field_id']?>">⚡ Đặt sân</a>
               </div>
             </div>
@@ -1239,7 +1287,8 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
             'image'        => img_src($fpItem['image']),
             'detail_url'   => 'user/field-detail.php?id=' . (int)$fpItem['id'],
             'book_url'     => 'user/booking.php?field_id=' . (int)$fpItem['id'],
-            'gmap_url'     => "https://www.google.com/maps/dir/?api=1&destination={$latVal},{$lngVal}",
+            'gmap_url'     => !empty($fpItem['google_maps_url']) ? $fpItem['google_maps_url'] : "https://www.google.com/maps/dir/?api=1&destination={$latVal},{$lngVal}",
+            'pitch_code'   => $fpItem['pitch_code'] ?? '',
         ];
     }
     ?>
@@ -1254,10 +1303,19 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
         if (typeof L === 'undefined' || !document.getElementById('areaLeafletMap')) return;
 
         areaLeafletMap = L.map('areaLeafletMap', { zoomControl: true }).setView([10.788, 106.685], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '© OpenStreetMap'
-        }).addTo(areaLeafletMap);
+        window.areaTileLayers = {
+          street: L.tileLayer('https://{s}.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '© Google Maps'
+          }),
+          sat: L.tileLayer('https://{s}.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '© Google Satellite'
+          })
+        };
+        window.areaTileLayers.street.addTo(areaLeafletMap);
 
         const bounds = [];
         AREA_PITCHES_DATA.forEach(function (p) {
@@ -1288,8 +1346,8 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
               </div>
               <div class="smp-actions">
                 <a href="${p.detail_url}" class="smp-btn outline">Xem chi tiết</a>
+                <button type="button" onclick="if(typeof openOwnerChatWidget==='function') openOwnerChatWidget(${p.id})" class="smp-btn outline" style="border-color:#059669;color:#059669;background:#ecfdf5;cursor:pointer">💬 Chat Chủ sân</button>
                 <a href="${p.book_url}" class="smp-btn primary">Đặt sân →</a>
-                <a href="${p.gmap_url}" target="_blank" rel="noopener" class="smp-btn dir">🧭 Chỉ đường</a>
               </div>
             </div>
           `;
@@ -1310,6 +1368,25 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
       });
 
       // 2. Đồng bộ khi người dùng rê chuột hoặc bấm vào thẻ Khu vực / Điểm dừng -> Bản đồ bay (flyTo) tới sân và mở Popup
+      function switchAreaMapLayer(mode) {
+        if (!areaLeafletMap || !window.areaTileLayers) return;
+        if (mode === 'sat') {
+          areaLeafletMap.removeLayer(window.areaTileLayers.street);
+          window.areaTileLayers.sat.addTo(areaLeafletMap);
+        } else {
+          areaLeafletMap.removeLayer(window.areaTileLayers.sat);
+          window.areaTileLayers.street.addTo(areaLeafletMap);
+        }
+        var bSt = document.getElementById('btnHomeMapStreet');
+        var bSat = document.getElementById('btnHomeMapSat');
+        if (bSt && bSat) {
+          bSt.style.background = mode === 'street' ? '#16a34a' : '';
+          bSt.style.color = mode === 'street' ? '#fff' : '';
+          bSat.style.background = mode === 'sat' ? '#16a34a' : '';
+          bSat.style.color = mode === 'sat' ? '#fff' : '';
+        }
+      }
+
       function focusAreaPitchOnMap(fid, labelText, openPopupNow) {
         var lbl = document.getElementById('areaMapStatusLabel');
         if (lbl && labelText) {
@@ -1319,7 +1396,7 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
 
         if (!areaLeafletMap || !pitchMarkersById[fid]) return;
         const item = pitchMarkersById[fid];
-        areaLeafletMap.flyTo([item.data.lat, item.data.lng], openPopupNow ? 15 : 14, {
+        areaLeafletMap.flyTo([item.data.lat, item.data.lng], openPopupNow ? 17 : 15, {
           duration: 0.55
         });
         if (openPopupNow) {
@@ -1475,8 +1552,7 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
         window.location.href = 'user/booking.php?field_id=' + encodeURIComponent(fid)
           + '&date=' + encodeURIComponent(dateStr)
           + '&start=' + encodeURIComponent(startStr)
-          + '&end=' + encodeURIComponent(endStr)
-          + '&voucher=SANBONG10';
+          + '&end=' + encodeURIComponent(endStr);
       }
     </script>
 
@@ -1517,6 +1593,13 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
                   <b><?=money($f['price_per_hour'])?></b><small>/giờ</small>
                 </div>
                 <div class="hp-card-btns">
+                  <button type="button"
+                          class="btn-detail"
+                          style="border-color:#34d399;color:#059669;background:#ecfdf5;cursor:pointer;font-family:inherit"
+                          onclick="if(typeof openOwnerChatWidget==='function') openOwnerChatWidget(<?=(int)$f['id']?>)"
+                          title="Nhắn tin trực tiếp với Chủ sân <?=e($f['name'])?>">
+                    💬 Chat Chủ sân
+                  </button>
                   <a class="btn-detail" href="user/field-detail.php?id=<?=$f['id']?>">Chi tiết</a>
                   <a class="btn sm" href="user/booking.php?field_id=<?=$f['id']?>">Đặt sân</a>
                 </div>
@@ -1559,22 +1642,52 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
         <?php endif; ?>
       </section>
 
-      <!-- Cột phải: Ưu đãi nổi bật -->
+      <!-- Cột phải: Ưu đãi nổi bật từ các Chủ sân Đối tác -->
+      <?php
+      $showcaseVouchers = function_exists('get_partner_vouchers_showcase')
+          ? get_partner_vouchers_showcase(3)
+          : [];
+      ?>
       <section class="hp-split-box">
         <h3 class="hp-h">
-          <span>🎁 Ưu đãi nổi bật</span>
-          <a href="user/booking.php">Áp mã →</a>
+          <span>🎁 Ưu đãi từ Chủ sân Đối tác</span>
+          <a href="user/booking.php">Xem sân →</a>
         </h3>
 
-        <div class="hp-voucher-card">
-          <div class="vc-ico">🏷️</div>
-          <div class="vc-info">
-            <b>GIẢM 20% ĐẶT SÂN MỚI</b>
-            <small>Nhập mã <code>TANTHU20</code> • Giảm tối đa 50.000đ</small>
-            <span class="vc-sub">Hoặc dùng mã <code>SANBONG10</code> giảm ngay 10% mọi khung giờ</span>
+        <?php if ($showcaseVouchers): ?>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <?php foreach ($showcaseVouchers as $sv):
+              $svDiscLabel = $sv['discount_type'] === 'percent'
+                  ? ('GIẢM ' . (int)$sv['discount_value'] . '% TIỀN SÂN')
+                  : ('GIẢM NGAY ' . money($sv['discount_value']));
+              $svBookUrl = 'user/booking.php?field_id=' . (int)$sv['target_field_id'] . '&voucher=' . urlencode($sv['code']);
+            ?>
+              <div class="hp-voucher-card" style="padding:12px 14px">
+                <div class="vc-ico">🏷️</div>
+                <div class="vc-info">
+                  <b><?=e($svDiscLabel)?> • <span style="color:#15803d"><?=e($sv['target_venue_name'])?></span></b>
+                  <small>
+                    Mã của Chủ sân: <code><?=e($sv['code'])?></code>
+                    • Đơn từ <?=money($sv['min_order'])?>
+                  </small>
+                  <?php if (!empty($sv['description'])): ?>
+                    <span class="vc-sub"><?=e($sv['description'])?></span>
+                  <?php endif; ?>
+                </div>
+                <a class="btn sm" href="<?=e($svBookUrl)?>" style="white-space:nowrap">Dùng mã →</a>
+              </div>
+            <?php endforeach; ?>
           </div>
-          <a class="btn sm" href="user/booking.php">Dùng mã</a>
-        </div>
+        <?php else: ?>
+          <div class="hp-voucher-card">
+            <div class="vc-ico">🏷️</div>
+            <div class="vc-info">
+              <b>ƯU ĐÃI ĐẶT SÂN TỪ ĐỐI TÁC</b>
+              <small>Chọn sân bóng để xem mã giảm giá riêng do Chủ sân đó phát hành</small>
+            </div>
+            <a class="btn sm" href="user/booking.php">Chọn sân</a>
+          </div>
+        <?php endif; ?>
       </section>
     </div>
 
@@ -1807,7 +1920,7 @@ $freeNowCount      = max(0, $totalActiveFields - count($busyNow));
     <div class="sb-foot-top-inner">
       <div class="sb-foot-cta-text">
         <span class="cta-badge">🔥 Ưu đãi sân cỏ</span>
-        <span>Nhập mã <b>SANBONG20</b> giảm ngay 20% khi đặt lịch thi đấu trực tuyến hôm nay!</span>
+        <span>Nhập mã <b>TANTHU20</b> giảm ngay 20% khi đặt lịch thi đấu trực tuyến hôm nay!</span>
       </div>
       <div class="sb-foot-cta-actions">
         <a class="sb-foot-cta-btn" href="user/booking.php">⚡ Đặt sân ngay</a>

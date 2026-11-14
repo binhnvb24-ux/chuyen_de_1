@@ -141,9 +141,23 @@ CREATE TABLE IF NOT EXISTS venues (
 ALTER TABLE fields
   ADD COLUMN IF NOT EXISTS venue_id INT UNSIGNED NULL DEFAULT NULL AFTER id,
   ADD COLUMN IF NOT EXISTS owner_id INT UNSIGNED NULL DEFAULT NULL AFTER venue_id,
+  ADD COLUMN IF NOT EXISTS parent_id INT UNSIGNED NULL DEFAULT NULL AFTER owner_id,
+  ADD COLUMN IF NOT EXISTS pitch_code VARCHAR(20) NULL DEFAULT NULL AFTER parent_id,
   ADD COLUMN IF NOT EXISTS pitch_type VARCHAR(10) AS (CONCAT('PITCH_', `type`)) VIRTUAL AFTER `type`,
   ADD INDEX IF NOT EXISTS idx_fields_venue (venue_id),
-  ADD INDEX IF NOT EXISTS idx_fields_owner (owner_id);
+  ADD INDEX IF NOT EXISTS idx_fields_owner (owner_id),
+  ADD INDEX IF NOT EXISTS idx_fields_parent (parent_id);
+
+CREATE TABLE IF NOT EXISTS pricing_rules (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  field_id INT UNSIGNED NOT NULL,
+  day_type ENUM('WEEKDAY', 'WEEKEND', 'HOLIDAY') NOT NULL DEFAULT 'WEEKDAY',
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  price_per_hour INT UNSIGNED NOT NULL,
+  label VARCHAR(80) NOT NULL DEFAULT 'Giờ tiêu chuẩn',
+  INDEX idx_pr_field_day (field_id, day_type, start_time, end_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE bookings
   ADD COLUMN IF NOT EXISTS booking_source ENUM('ONLINE','WALK_IN') NOT NULL DEFAULT 'ONLINE' AFTER note,
@@ -200,3 +214,51 @@ UPDATE fields c
 INNER JOIN fields p ON c.parent_id = p.id
 SET c.owner_id = p.owner_id
 WHERE p.owner_id IS NOT NULL;
+
+-- -----------------------------------------------------------------------------
+-- 6. PHÂN QUYỀN MÃ GIẢM GIÁ (`vouchers`) CHO TỪNG TÀI KHOẢN ĐỐI TÁC CHỦ SÂN
+--    Mỗi Chủ sân (`owner_id`) tự phát hành & quản lý Voucher cho Cụm sân (`venue_id`)
+--    hoặc Sân con (`field_id`) thuộc quyền sở hữu của mình.
+-- -----------------------------------------------------------------------------
+ALTER TABLE vouchers
+  ADD COLUMN IF NOT EXISTS owner_id INT UNSIGNED NULL DEFAULT NULL COMMENT 'ID Chủ sân phát hành (users.id)' AFTER id,
+  ADD COLUMN IF NOT EXISTS venue_id INT UNSIGNED NULL DEFAULT NULL COMMENT 'ID Cụm sân áp dụng (venues.id)' AFTER owner_id,
+  ADD COLUMN IF NOT EXISTS field_id INT UNSIGNED NULL DEFAULT NULL COMMENT 'ID Sân cụ thể áp dụng (fields.id)' AFTER venue_id,
+  ADD COLUMN IF NOT EXISTS description VARCHAR(255) NULL DEFAULT NULL COMMENT 'Mô tả chương trình ưu đãi của Chủ sân' AFTER code,
+  ADD INDEX IF NOT EXISTS idx_vouchers_owner (owner_id),
+  ADD INDEX IF NOT EXISTS idx_vouchers_venue (venue_id);
+
+-- -----------------------------------------------------------------------------
+-- 7. BẢNG TIN NHẮN TRỰC TIẾP GIỮA KHÁCH HÀNG & CHỦ SÂN (`owner_chat_messages`)
+--    Hỗ trợ gửi tin nhắn văn bản & đính kèm Thẻ báo giá / Đặt sân nhanh (`pitch_card_json`)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS owner_chat_messages (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT UNSIGNED NOT NULL COMMENT 'ID khách đặt sân - liên kết users.id',
+  owner_id INT UNSIGNED NOT NULL COMMENT 'ID chủ sân sở hữu sân đó - liên kết users.id',
+  field_id INT UNSIGNED NOT NULL COMMENT 'ID cụm sân/sân bóng khách chọn liên hệ - liên kết fields.id',
+  sender_id INT UNSIGNED NOT NULL COMMENT 'ID người gửi tin nhắn',
+  sender_role ENUM('CUSTOMER', 'OWNER') NOT NULL DEFAULT 'CUSTOMER',
+  message TEXT NOT NULL COMMENT 'Nội dung tin nhắn',
+  pitch_card_json TEXT NULL COMMENT 'JSON chứa thông tin thẻ đặt sân nhanh: field_id, name, pitch_code, time_slot, price, image, book_url',
+  is_read TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0: Chưa xem, 1: Đã xem',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ocm_cust_field (customer_id, field_id, created_at),
+  INDEX idx_ocm_owner_unread (owner_id, is_read, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 8. BẢNG BỘ NHỚ ĐỆM ĐÁNH GIÁ SÂN BÓNG TỪ GOOGLE MAPS (`google_maps_reviews_cache`)
+--    Lưu điểm sao Google Maps, tổng số lượt đánh giá và danh sách bài nhận xét
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS google_maps_reviews_cache (
+  field_id INT UNSIGNED NOT NULL PRIMARY KEY COMMENT 'ID sân bóng - liên kết fields.id',
+  place_id VARCHAR(120) DEFAULT NULL COMMENT 'Google Maps Place ID chuẩn của sân bóng',
+  google_rating DECIMAL(3,1) NOT NULL DEFAULT 4.8 COMMENT 'Điểm trung bình trên Google Maps (thang 5 sao)',
+  google_total_reviews INT UNSIGNED NOT NULL DEFAULT 120 COMMENT 'Tổng số lượt đánh giá trên Google Maps',
+  google_maps_place_url VARCHAR(500) DEFAULT NULL COMMENT 'Đường dẫn mở trực tiếp địa điểm sân trên Google Maps',
+  source_mode VARCHAR(30) NOT NULL DEFAULT 'google_maps_sync',
+  reviews_json MEDIUMTEXT NOT NULL COMMENT 'Chuỗi JSON lưu danh sách các bài đánh giá từ Google Maps',
+  synced_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

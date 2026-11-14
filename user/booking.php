@@ -17,19 +17,13 @@ require_once '../includes/auth.php';
 $u = require_login();
 
 // ----------------------------------------------------------------------------
-// PHẦN 1: TẢI DANH SÁCH SÂN BÓNG, DỊCH VỤ & MÃ GIẢM GIÁ VOUCHER
+// PHẦN 1: TẢI DANH SÁCH SÂN BÓNG, DỊCH VỤ & MÃ GIẢM GIÁ VOUCHER CỦA CHỦ SÂN
 // ----------------------------------------------------------------------------
 $fields = $pdo->query("SELECT * FROM fields WHERE status = 'active' ORDER BY type ASC, id ASC")->fetchAll();
-$services = $pdo->query("SELECT * FROM services WHERE status = 'active'")->fetchAll();
-$vouchers_active = $pdo->query("
-    SELECT * FROM vouchers
-    WHERE status = 'active'
-      AND expired_at >= CURDATE()
-      AND used_count < usage_limit
-    ORDER BY discount_value DESC
-")->fetchAll();
-
 $fid = (int)($_POST['field_id'] ?? $_GET['field_id'] ?? ($fields[0]['id'] ?? 0));
+$vouchers_active = function_exists('get_active_vouchers_for_field')
+    ? get_active_vouchers_for_field($fid)
+    : [];
 $userRepScore = (int)($u['reputation_score'] ?? 100);
 $repTier      = get_reputation_tier($userRepScore);
 $walletBal    = (float)($u['wallet_balance'] ?? 0);
@@ -45,8 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $en           = $_POST['end'] ?? '';
     $note         = trim($_POST['note'] ?? '');
     $voucher_code = strtoupper(trim($_POST['voucher_code'] ?? ''));
-    $req_services = $_POST['services'] ?? [];
-    $method       = in_array($_POST['payment_method'] ?? '', ['wallet', 'bank', 'momo', 'vnpay', 'cash'])
+    $method       = in_array($_POST['payment_method'] ?? '', ['bank', 'momo', 'vnpay', 'cash'])
                     ? $_POST['payment_method']
                     : 'bank';
     $booking_mode = $_POST['booking_mode'] ?? 'single'; // 'single' hoặc 'recurring'
@@ -65,10 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash('err', 'Thời lượng đặt sân tối thiểu là 60 phút (1 giờ).');
     } elseif ($startTs <= time()) {
         flash('err', 'Không thể đặt khung giờ đã qua.');
-    } elseif (!$repTier['can_hold'] && $method !== 'wallet') {
-        flash('err', '⛔ Điểm uy tín của bạn hiện dưới 60 điểm (' . $userRepScore . '/100). Tính năng giữ chỗ tạm thời (HOLD) bị khóa — vui lòng nạp Ví nội bộ để thanh toán 100% tức thì khi đặt sân.');
+    } elseif (!$repTier['can_hold']) {
+        flash('err', '⛔ Điểm uy tín của bạn hiện dưới 60 điểm (' . $userRepScore . '/100). Tính năng đặt giữ chỗ tự động đang tạm khóa — vui lòng liên hệ Quản trị viên để được hỗ trợ.');
     } elseif ($repTier['require_full_prepay'] && $method === 'cash') {
-        flash('err', '⚠️ Điểm uy tín của bạn đang ở mức Cảnh báo (' . $userRepScore . '/100). Hệ thống yêu cầu thanh toán trước 100% (VietQR / MoMo / VNPay / Ví nội bộ), không áp dụng trả tiền mặt tại sân.');
+        flash('err', '⚠️ Điểm uy tín của bạn đang ở mức Cảnh báo (' . $userRepScore . '/100). Hệ thống yêu cầu thanh toán chuyển khoản trước 100% (VietQR / MoMo / VNPay), không áp dụng trả tiền mặt tại sân.');
     }
     // 2.2. XỬ LÝ NẾU KHÁCH CHỌN "ĐẶT LỊCH CỐ ĐỊNH HÀNG TUẦN" (RECURRING CONTRACT)
     elseif ($booking_mode === 'recurring') {
@@ -150,35 +143,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pricing  = calculate_dynamic_price($fid, $date, $st, $en);
                     $subtotal = (int)$pricing['total_price'];
 
-                    // Bước D: Tính tiền các dịch vụ tiện ích đi kèm
-                    $service_total = 0;
-                    $svc_to_insert = [];
-
-                    if (!empty($req_services) && is_array($req_services)) {
-                        $svc_ids  = array_keys($req_services);
-                        $in       = str_repeat('?,', count($svc_ids) - 1) . '?';
-                        $stmt_svc = $pdo->prepare("SELECT * FROM services WHERE id IN ($in)");
-                        $stmt_svc->execute($svc_ids);
-                        $svc_db = $stmt_svc->fetchAll();
-
-                        foreach ($svc_db as $s_item) {
-                            $qty = max(0, (int)($req_services[$s_item['id']] ?? 0));
-                            if ($qty > 0) {
-                                $item_cost      = $qty * $s_item['price'];
-                                $service_total += $item_cost;
-                                $svc_to_insert[] = [
-                                    'id'    => $s_item['id'],
-                                    'qty'   => $qty,
-                                    'price' => $s_item['price']
-                                ];
-                            }
-                        }
-                    }
-
-                    $total = $subtotal + $service_total;
+                    $total = $subtotal;
                     $vid   = null;
 
-                    // Bước E: Kiểm tra và áp dụng mã giảm giá (Voucher)
+                    // Bước E: Kiểm tra và áp dụng mã giảm giá (Voucher của Đối tác Chủ sân)
                     if ($voucher_code !== '') {
                         $vstmt = $pdo->prepare("
                             SELECT * FROM vouchers
@@ -188,7 +156,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $vstmt->execute([$voucher_code]);
                         $v = $vstmt->fetch();
 
-                        if ($v && $v['used_count'] < $v['usage_limit'] && $total >= $v['min_order']) {
+                        $voucherScopeOk = true;
+                        if ($v && function_exists('can_apply_voucher_to_field')) {
+                            $chkScope = can_apply_voucher_to_field($v, $f);
+                            $voucherScopeOk = !empty($chkScope['ok']);
+                        }
+
+                        if ($v && $voucherScopeOk && $v['used_count'] < $v['usage_limit'] && $total >= $v['min_order']) {
                             $vid = $v['id'];
                             if ($v['discount_type'] === 'percent') {
                                 $discount = (int)round(($total * $v['discount_value']) / 100);
@@ -204,18 +178,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
-                    // Bước F: Kiểm tra nếu thanh toán bằng Ví nội bộ ('wallet')
-                    if ($method === 'wallet' && $walletBal < $total) {
-                        $pdo->rollBack();
-                        flash('err', 'Số dư Ví nội bộ (' . money($walletBal) . ') không đủ để thanh toán đơn ' . money($total) . '. Vui lòng nạp thêm hoặc chọn VietQR!');
-                        header('Location: booking.php?field_id=' . $fid . '&date=' . urlencode($date));
-                        exit;
-                    }
-
                     // Thiết lập thời gian giữ chỗ 10 phút (HOLD Timeout) nếu thanh toán trực tuyến chờ quét QR
-                    $isInstantWallet = ($method === 'wallet');
-                    $initBkStatus    = $isInstantWallet ? 'confirmed' : 'pending';
-                    $holdExpiresAt   = ($method === 'cash' || $isInstantWallet)
+                    $initBkStatus  = 'pending';
+                    $holdExpiresAt = ($method === 'cash')
                         ? null
                         : date('Y-m-d H:i:s', time() + 600); // 10 phút = 600 giây
 
@@ -231,38 +196,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     $bid = (int)$pdo->lastInsertId();
 
-                    // Lưu danh sách dịch vụ đi kèm
-                    foreach ($svc_to_insert as $s_ins) {
-                        $pdo->prepare("
-                            INSERT INTO booking_services (booking_id, service_id, quantity, price)
-                            VALUES (?, ?, ?, ?)
-                        ")->execute([$bid, $s_ins['id'], $s_ins['qty'], $s_ins['price']]);
-                    }
-
-                    // Lưu bản ghi thanh toán (Nếu dùng Ví nội bộ thì trừ tiền Ví, xác nhận paid và cộng +5 điểm uy tín)
-                    if ($isInstantWallet) {
-                        $txnWallet = 'WALLET' . date('ymdHis') . rand(100, 999);
-                        $pdo->prepare("
-                            INSERT INTO payments (booking_id, method, amount, status, transaction_code, paid_at)
-                            VALUES (?, 'wallet', ?, 'paid', ?, NOW())
-                        ")->execute([$bid, $total, $txnWallet]);
-
-                        $loyaltyBonus = max(10, (int)round($total / 10000));
-                        record_wallet_and_reputation(
-                            (int)$u['id'],
-                            'PAYMENT',
-                            -$total,
-                            5,
-                            $loyaltyBonus,
-                            "Thanh toán đặt sân {$f['name']} (Đơn #{$bid}) bằng Ví nội bộ — Cộng +5 Điểm Uy Tín",
-                            $bid
-                        );
-                    } else {
-                        $pdo->prepare("
-                            INSERT INTO payments (booking_id, method, amount, status)
-                            VALUES (?, ?, ?, 'pending')
-                        ")->execute([$bid, $method, $total]);
-                    }
+                    // Lưu bản ghi thanh toán
+                    $pdo->prepare("
+                        INSERT INTO payments (booking_id, method, amount, status)
+                        VALUES (?, ?, ?, 'pending')
+                    ")->execute([$bid, $method, $total]);
 
                     // Bước G: Nếu bật đăng lên Sàn Cáp Kèo / Tìm Đối Giao Hữu
                     if (!empty($_POST['enable_matchmaking'])) {
@@ -292,10 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
                     $pdo->commit();
 
-                    if ($isInstantWallet) {
-                        flash('ok', "🎉 Đã thanh toán đơn #$bid bằng Ví nội bộ thành công! Bạn được cộng +5 Điểm Uy Tín & nhận Vé QR ngay.");
-                        header("Location: payment-demo.php?booking_id=$bid");
-                    } elseif ($method === 'cash') {
+                    if ($method === 'cash') {
                         flash('ok', 'Đặt sân thành công! Đơn #' . $bid . ' đã được ghi nhận (Thanh toán tiền mặt tại sân).');
                         header('Location: my-bookings.php');
                     } else {
@@ -426,10 +361,7 @@ include '../includes/header.php';
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <span class="tag green" style="font-size:12.5px;padding:6px 12px">
-      💰 Số dư Ví nội bộ: <b><?=money($walletBal)?></b>
-    </span>
-    <a href="profile.php?tab=wallet" class="btn sm outline">Nạp Ví / Đổi điểm →</a>
+    <a href="profile.php" class="btn sm outline">👤 Xem hồ sơ & Uy tín →</a>
   </div>
 </div>
 
@@ -496,15 +428,23 @@ include '../includes/header.php';
       </div>
 
       <?php
-      // Xây dựng bản đồ ánh xạ pitch_code -> thông tin sân để vẽ Sơ đồ Mặt Sân Cỏ 2D Trực Quan
+      // Xây dựng bản đồ ánh xạ pitch_code -> thông tin sân (ưu tiên sân cùng Cụm venue_id hoặc trong cây liên kết)
+      $relatedIds = array_map(fn($r) => (int)$r['id'], $hierarchy['all_related'] ?? []);
+      $curVenueId = (int)($cur_field['venue_id'] ?? 0);
       $pitchMapByCode = [];
       foreach ($fields as $pf) {
           $code = strtoupper(trim($pf['pitch_code'] ?? ''));
-          if ($code !== '') {
+          if ($code === '') {
+              continue;
+          }
+          $pfId = (int)$pf['id'];
+          $isSameCluster = ($pfId === (int)$fid)
+              || in_array($pfId, $relatedIds, true)
+              || ($curVenueId > 0 && (int)($pf['venue_id'] ?? 0) === $curVenueId);
+          if (!isset($pitchMapByCode[$code]) || $isSameCluster) {
               $pitchMapByCode[$code] = $pf;
           }
       }
-      $relatedIds = array_map(fn($r) => (int)$r['id'], $hierarchy['all_related'] ?? []);
 
       // Hàm trợ giúp lấy class trạng thái (is-selected hoặc is-linked-lock) và URL chuyển sân
       $getPitchNodeMeta = function (string $code, string $fallbackLabel) use ($pitchMapByCode, $fid, $relatedIds, $sel) {
@@ -621,40 +561,6 @@ include '../includes/header.php';
           </div>
         </div>
       </div>
-
-      <!-- 5.2. Hộp thông tin Quan hệ Ghép sân - Tách sân (Hierarchical Pitch Mapping) -->
-      <?php if (!empty($hierarchy['all_related'])): ?>
-        <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:12px;padding:12px 14px;margin-bottom:16px">
-          <div style="font-weight:800;font-size:13px;color:#1e3a8a;margin-bottom:6px">
-            🔗 CƠ CHẾ GHÉP SÂN - TÁCH SÂN TỰ ĐỘNG (HIERARCHICAL PITCH LOCKING):
-          </div>
-          <div style="font-size:12.5px;color:#1e40af;line-height:1.55">
-            <?php if (!empty($hierarchy['ancestors'])): ?>
-              <div>
-                • <b>Thuộc tổ hợp sân lớn:</b>
-                <?php foreach ($hierarchy['ancestors'] as $anc): ?>
-                  <a href="?field_id=<?=$anc['id']?>&date=<?=urlencode($sel)?>" style="display:inline-block;background:#dbeafe;color:#1d4ed8;font-weight:700;padding:2px 8px;border-radius:6px;margin-right:4px">
-                    🏟 <?=e($anc['name'])?> (Sân <?=$anc['type']?>)
-                  </a>
-                <?php endforeach; ?>
-                <i>(Nếu sân này có lịch, sân lớn sẽ tự động khóa và ngược lại)</i>
-              </div>
-            <?php endif; ?>
-
-            <?php if (!empty($hierarchy['descendants'])): ?>
-              <div style="margin-top:4px">
-                • <b>Được ghép từ các sân thành phần:</b>
-                <?php foreach ($hierarchy['descendants'] as $desc): ?>
-                  <a href="?field_id=<?=$desc['id']?>&date=<?=urlencode($sel)?>" style="display:inline-block;background:#dcfce7;color:#15803d;font-weight:700;padding:2px 8px;border-radius:6px;margin-right:4px">
-                    ⚽ <?=e($desc['name'])?> (Sân <?=$desc['type']?>)
-                  </a>
-                <?php endforeach; ?>
-                <i>(Đặt sân này sẽ tự động khóa toàn bộ các sân thành phần bên dưới)</i>
-              </div>
-            <?php endif; ?>
-          </div>
-        </div>
-      <?php endif; ?>
 
       <!-- 5.3. Bảng khung giờ Giá Động áp dụng cho ngày đang chọn -->
       <?php if ($dayRules): ?>
@@ -859,7 +765,7 @@ include '../includes/header.php';
 
           <?php if ($vouchers_active): ?>
             <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-              <small style="margin:0;color:#64748b">🎁 Chọn nhanh Voucher:</small>
+              <small style="margin:0;color:#64748b">🎁 Voucher do Chủ sân này phát hành:</small>
               <?php foreach ($vouchers_active as $va): ?>
                 <button
                   type="button"
@@ -870,6 +776,10 @@ include '../includes/header.php';
                 </button>
               <?php endforeach; ?>
             </div>
+          <?php else: ?>
+            <small style="display:block;margin-top:6px;color:#64748b;font-size:12px">
+              ℹ️ Chủ sân hiện chưa mở mã giảm giá công khai cho sân này (hoặc nhập mã riêng do Chủ sân cấp).
+            </small>
           <?php endif; ?>
         </div>
 
@@ -881,10 +791,7 @@ include '../includes/header.php';
         <div style="margin-bottom:24px">
           <label style="margin:0 0 8px;font-weight:600">Phương thức thanh toán</label>
           <select name="payment_method" style="padding:12px;border-radius:8px;width:100%;border:1.5px solid #cbd5e1;font-weight:600">
-            <option value="wallet" <?=$walletBal >= ($cur_field['price_per_hour'] ?? 200000) ? 'selected' : ''?>>
-              💰 Thanh toán ngay bằng Ví Nội Bộ (Số dư: <?=money($walletBal)?> — Xác nhận tức thì +5 Điểm Uy Tín)
-            </option>
-            <option value="bank" <?=$walletBal < ($cur_field['price_per_hour'] ?? 200000) ? 'selected' : ''?> <?=!$repTier['can_hold'] ? 'disabled' : ''?>>
+            <option value="bank" selected <?=!$repTier['can_hold'] ? 'disabled' : ''?>>
               🏦 Chuyển khoản Ngân hàng (VietQR Tự động - Giữ chỗ HOLD 10 phút)
             </option>
             <option value="momo" <?=!$repTier['can_hold'] ? 'disabled' : ''?>>
@@ -959,13 +866,6 @@ include '../includes/header.php';
           <b style="color:#0f172a">TỔNG THANH TOÁN:</b>
           <b id="summaryTotal" style="color:#16a34a;font-family:var(--font-sport);font-size:24px">0đ</b>
         </div>
-      </div>
-
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-top:14px">
-        <small style="color:#92400e;font-weight:700;margin:0">⏳ Cơ chế Giữ Chỗ Tạm Thời (HOLD 10 Phút):</small>
-        <span style="font-size:12px;color:#b45309;display:block;margin-top:4px">
-          Ngay khi bấm Đặt sân, hệ thống sẽ <b>khóa sân (kể cả sân Cha/Con liên quan) trong 10 phút</b> để chống đặt trùng trong lúc bạn quét QR thanh toán.
-        </span>
       </div>
     </div>
 
@@ -1142,20 +1042,10 @@ function recalcPrice() {
   const isRec = document.getElementById('radRecurring')?.checked;
   const weeks = isRec ? parseInt(document.getElementById('selWeeksCount').value || '4', 10) : 1;
 
-  let svcCost = 0;
-  document.querySelectorAll('.svc-input').forEach(inp => {
-    const qty = Math.max(0, parseInt(inp.value || '0', 10));
-    const pr = parseInt(inp.dataset.price || '0', 10);
-    svcCost += qty * pr;
-  });
-
   const rawFieldCost = latestDynamicFieldPrice * weeks;
-  const totalSvcCost = svcCost * weeks;
-  const subtotal = rawFieldCost + totalSvcCost;
+  const subtotal = rawFieldCost;
 
   document.getElementById('summaryFieldCost').textContent = formatVND(rawFieldCost) + (weeks > 1 ? ` (${weeks} tuần)` : '');
-  const svcEl = document.getElementById('summarySvcCost');
-  if (svcEl) svcEl.textContent = formatVND(totalSvcCost);
 
   let discount = 0;
   if (isRec) {
@@ -1195,7 +1085,7 @@ async function applyVoucher() {
   }
 
   try {
-    const res = await fetch(`${CHECK_VOUCHER_URL}?code=${encodeURIComponent(code)}&subtotal=${subtotal}`);
+    const res = await fetch(`${CHECK_VOUCHER_URL}?code=${encodeURIComponent(code)}&subtotal=${subtotal}&field_id=${FIELD_ID}`);
     const data = await res.json();
     if (data.ok) {
       currentVoucher = data;

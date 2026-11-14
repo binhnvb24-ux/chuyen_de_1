@@ -1,37 +1,39 @@
 <?php
 /**
- * MÔ TẢ: Trung tâm Tài khoản Cá nhân Đa vai trò (Customer Profile & Partner Hub)
- * GỒM 4 TAB CHỨC NĂNG CHÍNH:
- *   - Tab 1 (profile): Hồ sơ cá nhân, Hồ sơ Cầu thủ/FC & Thanh Điểm Uy Tín (Reputation Score).
- *   - Tab 2 (bookings): Quản lý Lịch đặt sân & Hủy sân thông minh (Hoàn tiền Ví / Cảnh báo trừ Uy tín).
- *   - Tab 3 (wallet): Ví nội bộ (wallet_balance), Điểm thưởng (loyalty_points) & Lịch sử giao dịch.
- *   - Tab 4 (partner): Đăng ký Hợp tác Mở sân (Multi-step Form + Bản đồ Leaflet Google Maps Tiles
- *                      + Theo dõi tiến trình duyệt đơn + Nút Chuyển sang Kênh Chủ Sân).
+ * ============================================================================
+ * FILE: user/profile.php
+ * MÔ TẢ: Trang Thông Tin Cá Nhân & Hồ Sơ Cầu Thủ (Modern Sport Player Profile)
+ * GỒM 3 TAB CHỨC NĂNG GỌN GÀNG, HIỆN ĐẠI (ĐÃ LOẠI BỎ VÍ NỘI BỘ):
+ *   - Tab 1 (profile) : Thông tin liên hệ, Thẻ Cầu thủ/Đội bóng (Player Card),
+ *                       Đổi mật khẩu bảo mật & Chỉ số Điểm Uy Tín (Reputation Score).
+ *   - Tab 2 (bookings): Lịch đặt sân cá nhân, Mở vé QR & Hủy lịch thông minh.
+ *   - Tab 3 (partner) : Đăng ký Hợp tác Mở sân (Multi-step Form + Bản đồ Leaflet GPS).
+ * ============================================================================
  */
 
 require_once '../includes/auth.php';
 $u = require_login();
 
 $tab = $_GET['tab'] ?? 'profile';
-if (!in_array($tab, ['profile', 'bookings', 'wallet', 'partner', 'security'], true)) {
+if (!in_array($tab, ['profile', 'bookings', 'partner'], true)) {
     $tab = 'profile';
 }
 
 // ----------------------------------------------------------------------------
-// XỬ LÝ CÁC YÊU CẦU POST TRÊN CẢ 4 TAB
+// XỬ LÝ CÁC YÊU CẦU POST (CẬP NHẬT HỒ SƠ, ĐỔI MẬT KHẨU, HỦY LỊCH, ĐĂNG KÝ CHỦ SÂN)
 // ----------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = $_POST['action'] ?? '';
 
-    // 1. Cập nhật Hồ sơ liên hệ + Hồ sơ Cầu thủ / Đội bóng (Tab 1)
+    // 1. Cập nhật Thông tin cá nhân + Hồ sơ Cầu thủ / Đội bóng
     if ($action === 'update_profile') {
         $fullName  = trim($_POST['full_name'] ?? '');
         $phone     = trim($_POST['phone'] ?? '');
         $email     = trim($_POST['email'] ?? '');
         $teamName  = trim($_POST['team_name'] ?? '');
         $position  = trim($_POST['preferred_position'] ?? 'Tiền vệ');
-        $skill     = trim($_POST['skill_level'] ?? 'Vui vẻ');
+        $skill     = trim($_POST['skill_level'] ?? 'Phong trào');
         $districts = trim($_POST['preferred_districts'] ?? '');
         $jerseyNum = max(1, min(99, (int)($_POST['jersey_number'] ?? 10)));
         $bio       = trim($_POST['bio'] ?? '');
@@ -69,13 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     bio = VALUES(bio)
             ")->execute([$u['id'], $position, $skill, $teamName, $districts, $jerseyNum, $bio]);
 
-            flash('ok', '✔ Đã cập nhật Hồ sơ cá nhân & Hồ sơ cầu thủ thành công!');
+            flash('ok', '✔ Đã cập nhật thông tin cá nhân và hồ sơ cầu thủ thành công!');
         }
         header('Location: profile.php?tab=profile');
         exit;
     }
 
-    // 2. Đổi mật khẩu bảo mật (Tab 1 & Tab 5)
+    // 2. Đổi mật khẩu bảo mật
     if ($action === 'change_password') {
         $oldPass = $_POST['old'] ?? '';
         $newPass = $_POST['new'] ?? '';
@@ -87,18 +89,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (strlen($newPass) < 6) {
             flash('err', 'Mật khẩu mới phải có tối thiểu 6 ký tự.');
         } elseif ($newPass !== $confirm) {
-            flash('err', 'Mật khẩu nhập lại không khớp.');
+            flash('err', 'Mật khẩu xác nhận nhập lại không khớp.');
         } else {
             $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")
                 ->execute([password_hash($newPass, PASSWORD_DEFAULT), $u['id']]);
             flash('ok', '🔐 Đã cập nhật mật khẩu bảo vệ tài khoản thành công.');
         }
-        $retTab = in_array($_POST['return_tab'] ?? '', ['profile', 'security'], true) ? $_POST['return_tab'] : 'security';
-        header('Location: profile.php?tab=' . $retTab);
+        header('Location: profile.php?tab=profile');
         exit;
     }
 
-    // 3. Hủy đặt sân thông minh: Hoàn tiền vào Ví nội bộ (nếu trước 2h) hoặc Trừ điểm uy tín (nếu hủy sát giờ < 2h) (Tab 2)
+    // 3. Hủy đặt sân: Trước 2h (hoàn trả cọc, không trừ uy tín) vs Sát giờ < 2h (trừ 15 điểm uy tín)
     if ($action === 'cancel_booking') {
         $bookingId       = (int)($_POST['booking_id'] ?? 0);
         $forceLateCancel = (int)($_POST['force_late_cancel'] ?? 0) === 1;
@@ -120,63 +121,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $kickoffTs   = strtotime($bk['booking_date'] . ' ' . $bk['start_time']);
             $secondsLeft = $kickoffTs - time();
             $hoursLeft   = round($secondsLeft / 3600, 1);
-            $isPaid      = ($bk['pay_status'] === 'paid' || $bk['status'] === 'confirmed');
+            $isPaid      = ($bk['pay_status'] === 'paid');
             $refundAmt   = $isPaid ? (int)($bk['paid_amount'] ?: $bk['total_price']) : 0;
 
-            if ($secondsLeft >= 7200) {
-                // HỦY HỢP LỆ TRƯỚC 2 GIỜ: Hoàn tiền cọc/thanh toán vào Ví nội bộ (wallet_balance)
-                $pdo->prepare("
-                    UPDATE bookings
-                    SET status = 'cancelled',
-                        cancel_reason = 'Khách hủy hợp lệ trước giờ quy định (> 2 giờ) - Đã hoàn tiền vào Ví nội bộ'
-                    WHERE id = ?
-                ")->execute([$bk['id']]);
-
-                $pdo->prepare("
-                    UPDATE payments
-                    SET status = IF(status = 'paid', 'refunded', status)
-                    WHERE booking_id = ?
-                ")->execute([$bk['id']]);
-
-                if ($refundAmt > 0) {
-                    record_wallet_and_reputation(
-                        $u['id'],
-                        'REFUND',
-                        $refundAmt,
-                        0,
-                        0,
-                        "Hoàn tiền 100% đơn #{$bk['id']} ({$bk['field_name']} ngày " . date('d/m/Y', strtotime($bk['booking_date'])) . ") do hủy hợp lệ trước 2 giờ",
-                        $bk['id']
-                    );
-                    notify($u['id'], "💰 Đã hoàn " . money($refundAmt) . " vào Ví nội bộ của bạn sau khi hủy lịch {$bk['field_name']}.");
-                    flash('ok', "✔ Đã hủy sân hợp lệ trước giờ quy định! Hệ thống đã hoàn lại " . money($refundAmt) . " vào Ví nội bộ của bạn.");
-                } else {
-                    notify($u['id'], "❌ Bạn đã hủy giữ chỗ {$bk['field_name']} ngày " . date('d/m/Y', strtotime($bk['booking_date'])) . " hợp lệ (Không bị trừ điểm uy tín).");
-                    flash('ok', "✔ Đã hủy giữ chỗ {$bk['field_name']} hợp lệ (Không bị trừ điểm uy tín).");
-                }
-            } else {
-                // HỦY SÁT GIỜ (< 2 GIỜ TRƯỚC KHI BÓNG LĂN): Cảnh báo hoặc trừ -15 Điểm uy tín
-                if (!$forceLateCancel) {
-                    flash('err', "⚠️ CẢNH BÁO SÁT GIỜ: Trận đấu tại {$bk['field_name']} chỉ còn {$hoursLeft} giờ nữa là bóng lăn (< 2 giờ quy định). Nếu bạn vẫn muốn hủy khẩn cấp, hãy bấm nút 'Xác nhận hủy sát giờ (-15 điểm uy tín)'.");
-                } else {
+            if ($secondsLeft <= 0) {
+                flash('err', 'Trận đấu đã bắt đầu hoặc đã qua, không thể hủy lịch.');
+            } elseif ($secondsLeft >= 7200) {
+                $pdo->beginTransaction();
+                try {
                     $pdo->prepare("
                         UPDATE bookings
                         SET status = 'cancelled',
-                            cancel_reason = 'Hủy sát giờ (< 2 giờ trước giờ bóng lăn) - Bị trừ 15 điểm uy tín'
+                            hold_expires_at = NULL,
+                            cancel_reason = 'Khách hủy hợp lệ trước giờ quy định (> 2 giờ)'
                         WHERE id = ?
                     ")->execute([$bk['id']]);
 
-                    record_wallet_and_reputation(
-                        $u['id'],
-                        'REPUTATION',
-                        0,
-                        -15,
-                        0,
-                        "Trừ 15 điểm uy tín do hủy sân sát giờ (< 2 giờ) đối với đơn #{$bk['id']} ({$bk['field_name']})",
-                        $bk['id']
-                    );
-                    notify($u['id'], "⚠️ Bạn đã hủy sát giờ đơn #{$bk['id']} ({$bk['field_name']}). Tài khoản bị trừ -15 điểm uy tín theo quy định.");
-                    flash('cancel', "Đã hủy đơn #{$bk['id']} ({$bk['field_name']}). Do hủy sát giờ (< 2h), tài khoản bị trừ 15 điểm uy tín và không hoàn cọc.");
+                    $pdo->prepare("
+                        UPDATE payments
+                        SET status = IF(status = 'paid', 'refunded', status)
+                        WHERE booking_id = ?
+                    ")->execute([$bk['id']]);
+
+                    if ($refundAmt > 0) {
+                        notify($u['id'], "↩ Đã hủy hợp lệ lịch {$bk['field_name']} (Đơn #{$bk['id']}). Hệ thống đã ghi nhận hoàn trả " . money($refundAmt) . ".");
+                        flash('ok', "✔ Đã hủy sân hợp lệ trước giờ quy định! Hệ thống đã ghi nhận hoàn trả " . money($refundAmt) . " cho đơn #{$bk['id']}.");
+                    } else {
+                        notify($u['id'], "↩ Bạn đã hủy giữ chỗ {$bk['field_name']} ngày " . date('d/m/Y', strtotime($bk['booking_date'])) . " hợp lệ (Không bị trừ điểm uy tín).");
+                        flash('ok', "✔ Đã hủy giữ chỗ {$bk['field_name']} hợp lệ (Không bị trừ điểm uy tín).");
+                    }
+                    $pdo->commit();
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    flash('err', 'Lỗi xử lý hủy sân: ' . $e->getMessage());
+                }
+            } else {
+                if (!$forceLateCancel) {
+                    flash('err', "⚠️ CẢNH BÁO SÁT GIỜ: Trận đấu tại {$bk['field_name']} chỉ còn {$hoursLeft} giờ nữa là bóng lăn (< 2 giờ quy định). Nếu vẫn muốn hủy, hãy bấm xác nhận hủy sát giờ (-15 điểm uy tín).");
+                } else {
+                    $pdo->beginTransaction();
+                    try {
+                        $pdo->prepare("
+                            UPDATE bookings
+                            SET status = 'cancelled',
+                                hold_expires_at = NULL,
+                                cancel_reason = 'Hủy sát giờ (< 2 giờ trước giờ bóng lăn) - Bị trừ 15 điểm uy tín'
+                            WHERE id = ?
+                        ")->execute([$bk['id']]);
+
+                        record_wallet_and_reputation(
+                            $u['id'],
+                            'REPUTATION',
+                            0,
+                            -15,
+                            0,
+                            "Trừ 15 điểm uy tín do hủy sân sát giờ (< 2 giờ) đối với đơn #{$bk['id']} ({$bk['field_name']})",
+                            $bk['id']
+                        );
+                        notify($u['id'], "⚠️ Bạn đã hủy sát giờ đơn #{$bk['id']} ({$bk['field_name']}). Tài khoản bị trừ -15 điểm uy tín theo quy định.");
+                        $pdo->commit();
+                        flash('cancel', "Đã hủy đơn #{$bk['id']} ({$bk['field_name']}). Do hủy sát giờ (< 2h), tài khoản bị trừ 15 điểm uy tín.");
+                    } catch (Exception $e) {
+                        if ($pdo->inTransaction()) {
+                            $pdo->rollBack();
+                        }
+                        flash('err', 'Lỗi xử lý hủy sân sát giờ: ' . $e->getMessage());
+                    }
                 }
             }
         }
@@ -184,45 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 4. Nạp tiền thử vào Ví nội bộ hoặc Đổi điểm thưởng Loyalty sang tiền Ví (Tab 3)
-    if ($action === 'wallet_topup_demo') {
-        $topupAmt = max(50000, min(2000000, (int)($_POST['amount'] ?? 200000)));
-        record_wallet_and_reputation(
-            $u['id'],
-            'DEPOSIT',
-            $topupAmt,
-            0,
-            (int)floor($topupAmt / 10000),
-            'Nạp tiền vào Ví nội bộ Sân Bóng Pro qua VietQR 24/7',
-            null
-        );
-        notify($u['id'], "💳 Nạp thành công " . money($topupAmt) . " vào Ví nội bộ Sân Bóng Pro!");
-        flash('ok', "💳 Đã nạp thành công " . money($topupAmt) . " vào Ví nội bộ (Tặng thêm +" . (int)floor($topupAmt / 10000) . " điểm thưởng)!");
-        header('Location: profile.php?tab=wallet');
-        exit;
-    }
-
-    if ($action === 'redeem_loyalty') {
-        $curLoyalty = (int)($u['loyalty_points'] ?? 0);
-        if ($curLoyalty < 100) {
-            flash('err', 'Bạn cần tối thiểu 100 điểm tích lũy để quy đổi thành 20.000đ vào Ví nội bộ.');
-        } else {
-            record_wallet_and_reputation(
-                $u['id'],
-                'LOYALTY',
-                20000,
-                0,
-                -100,
-                'Quy đổi 100 Điểm thưởng tích lũy nhận 20.000đ vào Ví nội bộ',
-                null
-            );
-            flash('ok', '🎁 Đã đổi 100 Điểm thưởng thành +20.000đ vào Ví nội bộ của bạn!');
-        }
-        header('Location: profile.php?tab=wallet');
-        exit;
-    }
-
-    // 5. Gửi / Cập nhật Hồ sơ Đăng ký Hợp tác Mở sân (Multi-step Form trên Tab 4)
+    // 4. Gửi / Cập nhật Hồ sơ Đăng ký Hợp tác Mở sân (Tab 3)
     if ($action === 'submit_partner_application') {
         $venueName   = trim($_POST['venue_name'] ?? '');
         $venueAddr   = trim($_POST['venue_address'] ?? '');
@@ -249,7 +223,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pitchSummary = "{$cnt5} sân 5 người, {$cnt7} sân 7 người" . ($cnt11 > 0 ? " (Ghép được {$cnt11} sân 11 người)" : "");
 
-        // Xử lý upload hoặc link ảnh thực tế sân bóng, GPKD, CCCD mặt trước & mặt sau
         $upVenueImg = save_uploaded_asset('venue_image_file', 'venue_' . $u['id']);
         $upLicense  = save_uploaded_asset('business_license_file', 'license_' . $u['id']);
         $upCccdF    = save_uploaded_asset('id_card_front_file', 'cccd_front_' . $u['id']);
@@ -260,7 +233,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cccdFront   = $upCccdF    ?: (trim($_POST['id_card_front_url'] ?? '') ?: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600');
         $cccdBack    = $upCccdB    ?: (trim($_POST['id_card_back_url'] ?? '') ?: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600');
 
-        // Kiểm tra xem user có đơn đang REJECTED hoặc PENDING để cập nhật lại hay tạo mới
         $stmtExistApp = $pdo->prepare("SELECT id FROM partner_applications WHERE user_id = ? AND status IN ('PENDING','REJECTED') ORDER BY id DESC LIMIT 1");
         $stmtExistApp->execute([$u['id']]);
         $existAppId = (int)$stmtExistApp->fetchColumn();
@@ -319,34 +291,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         notify($u['id'], "✅ Đã gửi hồ sơ đăng ký hợp tác mở sân '{$venueName}' ({$district}). Hệ thống đang thẩm định hồ sơ của bạn.");
 
-        flash('ok', "🎉 Đã gửi hồ sơ đăng ký mở sân '{$venueName}' thành công! Trạng thái hiện tại: PENDING (Đang chờ Admin phê duyệt).");
+        flash('ok', "🎉 Đã gửi hồ sơ đăng ký mở sân '{$venueName}' thành công! Trạng thái hiện tại: Đang chờ Admin phê duyệt.");
         header('Location: profile.php?tab=partner');
         exit;
     }
 }
 
-// Tải lại dữ liệu mới nhất của User sau khi cập nhật
+// ----------------------------------------------------------------------------
+// TẢI DỮ LIỆU CÁ NHÂN, HỒ SƠ CẦU THỦ, LỊCH ĐẶT & HỒ SƠ ĐỐI TÁC
+// ----------------------------------------------------------------------------
 $u = require_login();
-$repScore = (int)($u['reputation_score'] ?? 100);
-$repTier  = get_reputation_tier($repScore);
-$walletBalance = (float)($u['wallet_balance'] ?? 0);
-$loyaltyPoints = (int)($u['loyalty_points'] ?? 0);
+$repScore      = (int)($u['reputation_score'] ?? 100);
+$repTier       = get_reputation_tier($repScore);
 $roleCode      = get_user_role_code($u);
 $partnerStatus = strtoupper((string)($u['partner_status'] ?? 'NONE'));
 
-// Lấy hồ sơ cầu thủ mở rộng từ user_profiles
 $stmtProf = $pdo->prepare("SELECT * FROM user_profiles WHERE user_id = ?");
 $stmtProf->execute([$u['id']]);
 $uProf = $stmtProf->fetch() ?: [
     'preferred_position'  => $u['preferred_position'] ?? 'Tiền vệ',
-    'skill_level'         => $u['skill_level'] ?? 'Vui vẻ',
+    'skill_level'         => $u['skill_level'] ?? 'Phong trào',
     'team_name'           => $u['team_name'] ?? '',
     'preferred_districts' => $u['preferred_districts'] ?? '',
     'jersey_number'       => 10,
     'bio'                 => '',
 ];
 
-// Lấy danh sách Lịch đặt sân của tôi (phục vụ Tab 2)
 $bkFilter = $_GET['bk_status'] ?? 'all';
 $stmtBk = $pdo->prepare("
     SELECT b.*, f.name AS field_name, f.type AS ftype, f.district, f.image,
@@ -373,118 +343,210 @@ $filteredBookings = array_filter($allMyBookings, function ($bItem) use ($bkFilte
     return true;
 });
 
-// Lấy lịch sử Ví nội bộ & Điểm uy tín (phục vụ Tab 1 & Tab 3)
-$stmtTx = $pdo->prepare("SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY id DESC LIMIT 30");
-$stmtTx->execute([$u['id']]);
-$walletTxs = $stmtTx->fetchAll();
+// Lấy lịch sử biến động Điểm uy tín
+$stmtRepLogs = $pdo->prepare("
+    SELECT * FROM wallet_transactions
+    WHERE user_id = ? AND reputation_delta <> 0
+    ORDER BY id DESC LIMIT 8
+");
+$stmtRepLogs->execute([$u['id']]);
+$repLogs = $stmtRepLogs->fetchAll();
 
-// Lấy danh sách đơn đăng ký Chủ sân của user (phục vụ Tab 4)
+// Lấy danh sách đơn đăng ký Chủ sân của user
 $stmtApps = $pdo->prepare("SELECT * FROM partner_applications WHERE user_id = ? ORDER BY id DESC");
 $stmtApps->execute([$u['id']]);
 $myPartnerApps = $stmtApps->fetchAll();
 $latestApp     = $myPartnerApps[0] ?? null;
 
 $active = ($tab === 'partner') ? 'partner' : 'prof';
-$title  = 'Trung tâm Tài khoản, Điểm Uy Tín, Ví Nội Bộ & Đăng ký Mở Sân';
+$title  = 'Thông tin cá nhân & Hồ sơ cầu thủ - Sân Bóng Pro';
 include '../includes/header.php';
 ?>
 
 <style>
-  .up-summary-banner {
-    background: linear-gradient(125deg, #0f172a 0%, #1e293b 58%, #064e3b 100%);
+  /* ==========================================================================
+     GIAO DIỆN THÔNG TIN CÁ NHÂN MỚI (MODERN SPORT PLAYER CARD UI)
+     ========================================================================== */
+  .pro-hero-banner {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(125deg, #052e16 0%, #064e3b 52%, #0f172a 100%);
     color: #ffffff;
-    border-radius: 18px;
-    padding: 22px 24px;
+    border-radius: 20px;
+    padding: 26px 28px;
     margin-bottom: 20px;
+    box-shadow: 0 16px 36px rgba(5, 46, 22, 0.2);
+    border: 1px solid rgba(74, 222, 128, 0.28);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 18px;
-    border-bottom: 4px solid #22c55e;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    gap: 20px;
   }
-  .up-user-left {
+  .pro-hero-banner::after {
+    content: "";
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.22) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .pro-hero-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
+    z-index: 2;
   }
-  .up-avatar-big {
-    width: 68px;
-    height: 68px;
+  .pro-avatar-wrap {
+    position: relative;
+    width: 86px;
+    height: 86px;
+    flex-shrink: 0;
+  }
+  .pro-avatar-circle {
+    width: 86px;
+    height: 86px;
     border-radius: 50%;
     background: linear-gradient(135deg, #22c55e, #15803d);
-    border: 3px solid #ffffff;
+    border: 3px solid #4ade80;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
     display: grid;
     place-items: center;
-    font-size: 26px;
+    font-size: 32px;
     font-weight: 800;
     color: #ffffff;
     overflow: hidden;
-    flex-shrink: 0;
   }
-  .up-avatar-big img {
+  .pro-avatar-circle img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-  .up-role-pills {
+  .pro-jersey-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    background: #f59e0b;
+    color: #0f172a;
+    font-family: var(--font-sport);
+    font-size: 12px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 2px solid #052e16;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  }
+  .pro-identity h2 {
+    margin: 0 0 6px;
+    font-size: 23px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .pro-role-pill {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid #4ade80;
+    color: #bbf7d0;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .pro-meta-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 13px;
+    color: #d1fae5;
+    margin-bottom: 8px;
+  }
+  .pro-meta-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pro-tags-row {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: 5px;
   }
-  .up-pill {
-    font-size: 11px;
-    font-weight: 800;
-    padding: 3px 10px;
-    border-radius: 999px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  .up-pill.role { background: #22c55e; color: #052e16; }
-  .up-pill.partner { background: rgba(255,255,255,0.16); color: #a7f3d0; border: 1px solid rgba(167,243,208,0.4); }
-  .up-kpis {
-    display: flex;
+  .pro-mini-chip {
+    display: inline-flex;
     align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ecfdf5;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .pro-hero-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 12px;
+    z-index: 2;
+  }
+  .pro-stat-cards {
+    display: flex;
+    gap: 10px;
     flex-wrap: wrap;
   }
-  .up-kpi-box {
+  .pro-stat-box {
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 12px;
-    padding: 10px 15px;
-    min-width: 135px;
+    border-radius: 14px;
+    padding: 10px 16px;
+    min-width: 118px;
+    text-align: center;
   }
-  .up-kpi-box small {
-    display: block;
+  .pro-stat-box small {
     font-size: 11px;
-    color: #cbd5e1;
+    color: #a7f3d0;
     margin: 0 0 2px;
+    text-transform: uppercase;
+    font-weight: 700;
   }
-  .up-kpi-box b {
-    font-size: 18px;
+  .pro-stat-box b {
+    font-family: var(--font-sport);
+    font-size: 20px;
     font-weight: 800;
     color: #ffffff;
   }
-
-  /* Thanh chuyển 4 Tab */
-  .up-tabs-nav {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 22px;
+  .pro-hero-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
   }
-  .up-tab-btn {
+
+  /* Thanh chuyển 3 Tab gọn gàng */
+  .pro-tabs-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .pro-tab-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 13px 14px;
-    border-radius: 12px;
+    gap: 9px;
+    padding: 13px 16px;
+    border-radius: 14px;
     background: #ffffff;
     border: 1.5px solid #e2e8f0;
     color: #334155;
@@ -494,58 +556,141 @@ include '../includes/header.php';
     transition: all 0.18s ease;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
   }
-  .up-tab-btn:hover {
+  .pro-tab-item:hover {
     border-color: #86efac;
     color: #15803d;
     transform: translateY(-2px);
   }
-  .up-tab-btn.active {
+  .pro-tab-item.active {
     background: linear-gradient(135deg, #16a34a, #15803d);
     color: #ffffff !important;
     border-color: #15803d;
     box-shadow: 0 8px 20px rgba(22, 163, 74, 0.25);
   }
 
-  /* Thanh Điểm Uy Tín (Reputation Meter) */
-  .rep-card {
+  /* Bố cục 2 cột chính trên Tab Thông tin cá nhân */
+  .pro-main-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 0.95fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .pro-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 22px 24px;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+    margin-bottom: 20px;
+  }
+  .pro-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+    border-bottom: 1.5px solid #f1f5f9;
+  }
+  .pro-card-head h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pro-section-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #15803d;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin: 18px 0 12px;
+  }
+  .pro-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .pro-field {
+    margin-bottom: 12px;
+  }
+  .pro-field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 5px;
+  }
+  .pro-field input,
+  .pro-field select,
+  .pro-field textarea {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13.5px;
+    color: #0f172a;
+    background: #ffffff;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    outline: none;
+  }
+  .pro-field input:focus,
+  .pro-field select:focus,
+  .pro-field textarea:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  }
+  .pro-field input[disabled] {
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+
+  /* Thanh Điểm Uy Tín gọn đẹp */
+  .pro-rep-strip {
     border-radius: 16px;
-    padding: 20px 22px;
-    margin-bottom: 22px;
-    border: 2px solid <?=$repTier['border']?>;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    border: 1.5px solid <?=$repTier['border']?>;
     background: <?=$repTier['bg']?>;
   }
-  .rep-progress-track {
+  .pro-rep-track {
     width: 100%;
-    height: 16px;
+    height: 12px;
     background: #e2e8f0;
     border-radius: 999px;
     overflow: hidden;
-    margin: 12px 0;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
+    margin: 10px 0 12px;
   }
-  .rep-progress-fill {
+  .pro-rep-fill {
     height: 100%;
     width: <?=$repScore?>%;
     background: <?=$repTier['color']?>;
     border-radius: 999px;
-    transition: width 0.5s ease;
   }
-  .rep-tiers-grid {
+  .pro-rep-tiers {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-top: 14px;
+    gap: 10px;
   }
-  .rep-tier-item {
+  .pro-rep-tier-box {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 12px;
+    padding: 9px 11px;
+    font-size: 11.5px;
   }
-  .rep-tier-item.current {
+  .pro-rep-tier-box.current {
     border: 2px solid <?=$repTier['color']?>;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
   }
 
   /* Multi-step Partner Form & Map */
@@ -595,122 +740,6 @@ include '../includes/header.php';
     border: 2px solid #86efac;
     z-index: 1;
   }
-  /* Bố cục 2 cột Trang Profile: Sidebar Trái (Menu + Chuyển kênh + Đăng xuất) + Nội dung Phải */
-  .up-layout-shell {
-    display: grid;
-    grid-template-columns: 290px 1fr;
-    gap: 22px;
-    align-items: start;
-  }
-  .up-side-menu {
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 18px;
-    padding: 18px;
-    position: sticky;
-    top: 84px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
-  }
-  .up-side-head {
-    text-align: center;
-    padding-bottom: 14px;
-    border-bottom: 1px dashed #cbd5e1;
-    margin-bottom: 14px;
-  }
-  .up-side-avatar {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    margin: 0 auto 10px;
-    background: linear-gradient(135deg, #22c55e, #15803d);
-    color: #fff;
-    font-size: 28px;
-    font-weight: 800;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    border: 3px solid #dcfce7;
-  }
-  .up-side-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .up-channel-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 800;
-    text-decoration: none !important;
-    margin-bottom: 8px;
-    transition: all 0.18s ease;
-  }
-  .up-channel-btn.partner-ch {
-    background: linear-gradient(135deg, #065f46, #16a34a);
-    color: #ffffff !important;
-    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
-  }
-  .up-channel-btn.admin-ch {
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: #4ade80 !important;
-    border: 1px solid #22c55e;
-  }
-  .up-side-nav-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .up-side-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 11px 13px;
-    border-radius: 11px;
-    color: #334155;
-    font-weight: 700;
-    font-size: 13.5px;
-    text-decoration: none !important;
-    transition: all 0.16s ease;
-    border: 1px solid transparent;
-  }
-  .up-side-link:hover {
-    background: #f0fdf4;
-    color: #15803d;
-    border-color: #bbf7d0;
-  }
-  .up-side-link.active {
-    background: linear-gradient(135deg, #16a34a, #15803d);
-    color: #ffffff !important;
-    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.22);
-  }
-  .up-logout-btn {
-    width: 100%;
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    border: 1.5px solid #fecaca;
-    background: #fef2f2;
-    color: #dc2626;
-    font-weight: 800;
-    font-size: 13.5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.18s ease;
-  }
-  .up-logout-btn:hover {
-    background: #dc2626;
-    color: #ffffff;
-    border-color: #dc2626;
-  }
   .logout-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -732,202 +761,215 @@ include '../includes/header.php';
     box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
     border: 1px solid #fecaca;
   }
-  @media (max-width: 980px) {
-    .up-layout-shell { grid-template-columns: 1fr; }
-    .up-side-menu { position: static; }
-    .up-tabs-nav { grid-template-columns: 1fr 1fr; }
-    .rep-tiers-grid { grid-template-columns: 1fr; }
+
+  @media (max-width: 960px) {
+    .pro-main-grid { grid-template-columns: 1fr; }
+    .pro-tabs-bar { grid-template-columns: 1fr; }
+    .pro-rep-tiers { grid-template-columns: 1fr; }
+    .pro-hero-right { align-items: flex-start; width: 100%; }
   }
 </style>
 
 <!-- ==========================================================================
-     BỐ CỤC 2 CỘT TRANG PROFILE: SIDEBAR TRÁI (MENU + CHUYỂN KÊNH + ĐĂNG XUẤT)
-     VÀ KHUNG NỘI DUNG PHẢI
+     1. BANNER HỒ SƠ CẦU THỦ / TÀI KHOẢN CÁ NHÂN (HERO PLAYER BANNER)
      ========================================================================== -->
-<div class="up-layout-shell">
-
-  <!-- CỘT TRÁI: SIDEBAR TRANG HỒ SƠ CÁ NHÂN -->
-  <aside class="up-side-menu">
-    <!-- 1. Khối Thông tin chung & Badge Điểm uy tín -->
-    <div class="up-side-head">
-      <div class="up-side-avatar">
+<div class="pro-hero-banner">
+  <div class="pro-hero-left">
+    <div class="pro-avatar-wrap">
+      <div class="pro-avatar-circle" id="heroAvatarBox">
         <?php if (!empty($u['avatar'])): ?>
-          <img src="<?=e(img_src($u['avatar']))?>" alt="<?=e($u['full_name'])?>" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.textContent=<?=json_encode(mb_substr($u['full_name'], 0, 1), JSON_UNESCAPED_UNICODE)?>">
+          <img id="heroAvatarImg" src="<?=e(img_src($u['avatar']))?>" alt="<?=e($u['full_name'])?>" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.textContent=<?=json_encode(mb_substr($u['full_name'], 0, 1), JSON_UNESCAPED_UNICODE)?>">
         <?php else: ?>
           <?=e(mb_substr($u['full_name'], 0, 1))?>
         <?php endif; ?>
       </div>
-      <b style="font-size:16.5px;color:#0f172a;display:block"><?=e($u['full_name'])?></b>
-      <small style="color:#64748b;margin:2px 0 8px;display:block">📞 <?=e($u['phone'])?> • @<?=e($u['username'])?></small>
-
-      <?php if (!empty($u['google_id'])): ?>
-        <div style="margin-bottom:6px">
-          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:11px;font-weight:700" title="Google ID: <?=e($u['google_id'])?>">
-            <svg width="12" height="12" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            Đã liên kết Google
-          </span>
-        </div>
-      <?php endif; ?>
-
-      <!-- Badge Điểm uy tín đổi màu Xanh / Vàng / Đỏ -->
-      <span style="display:inline-block;padding:4px 11px;border-radius:999px;background:<?=$repTier['color']?>;color:#fff;font-size:11.5px;font-weight:800">
-        <?=$repTier['badge_text']?>
-      </span>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;text-align:left">
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:7px 9px">
-          <small style="margin:0;font-size:10.5px;color:#15803d">💰 Ví nội bộ</small>
-          <b style="font-size:13px;color:#065f46"><?=money($walletBalance)?></b>
-        </div>
-        <div style="background:#fefce8;border:1px solid #fde047;border-radius:10px;padding:7px 9px">
-          <small style="margin:0;font-size:10.5px;color:#a16207">🎁 Điểm thưởng</small>
-          <b style="font-size:13px;color:#854d0e"><?=$loyaltyPoints?> điểm</b>
-        </div>
-      </div>
+      <span class="pro-jersey-badge" title="Số áo cầu thủ">#<?=(int)($uProf['jersey_number'] ?? 10)?></span>
     </div>
 
-    <!-- 2. Nút Chuyển Kênh Thông Minh (Dành cho PITCH_OWNER và ADMIN) -->
-    <?php if (is_pitch_owner($u)): ?>
-      <a href="owner-dashboard.php" class="up-channel-btn partner-ch">
-        <span>🏟 Kênh Chủ Sân (Partner Portal)</span>
-      </a>
-    <?php endif; ?>
-    <?php if ($roleCode === 'ADMIN'): ?>
-      <a href="../admin/dashboard.php" class="up-channel-btn admin-ch">
-        <span>🛡️ Vào Trang Quản Trị (Admin)</span>
-      </a>
-    <?php endif; ?>
+    <div class="pro-identity">
+      <h2>
+        <?=e($u['full_name'])?>
+        <span class="pro-role-pill">
+          <?php if ($roleCode === 'ADMIN'): ?>
+            🛡️ Quản trị viên
+          <?php elseif (is_pitch_owner($u)): ?>
+            🏟 Chủ sân đối tác
+          <?php else: ?>
+            ⚽ Đội trưởng / Cầu thủ
+          <?php endif; ?>
+        </span>
+      </h2>
 
-    <!-- 3. Danh sách Menu các Tab trong Trang Profile -->
-    <div class="up-side-nav-list">
-      <a class="up-side-link <?=$tab === 'profile' ? 'active' : ''?>" href="profile.php?tab=profile">
-        <span>👤 Thông tin & Hồ sơ cầu thủ</span>
-        <span>›</span>
-      </a>
-      <a class="up-side-link <?=$tab === 'bookings' ? 'active' : ''?>" href="profile.php?tab=bookings">
-        <span>📅 Lịch sử đặt sân & Hoàn cọc</span>
-        <span class="tag green" style="font-size:10.5px;padding:1px 7px"><?=count($allMyBookings)?></span>
-      </a>
-      <a class="up-side-link <?=$tab === 'wallet' ? 'active' : ''?>" href="profile.php?tab=wallet">
-        <span>💰 Ví hoàn tiền & Điểm thưởng</span>
-        <span>›</span>
-      </a>
-      <a class="up-side-link <?=$tab === 'partner' ? 'active' : ''?>" href="profile.php?tab=partner">
-        <span>🤝 Đăng ký Hợp tác Mở sân</span>
-        <span style="font-size:11px"><?=$partnerStatus === 'PENDING' ? '⏳' : ($partnerStatus === 'APPROVED' ? '✔' : '›')?></span>
-      </a>
-      <a class="up-side-link <?=$tab === 'security' ? 'active' : ''?>" href="profile.php?tab=security">
-        <span>🔐 Bảo mật & Đổi mật khẩu</span>
-        <span>›</span>
-      </a>
-    </div>
-
-    <!-- 4. Nút Đăng xuất màu đỏ trực quan ở cuối Sidebar trái của Profile -->
-    <button type="button" class="up-logout-btn" onclick="openLogoutConfirmModal()">
-      <span>🚪 Đăng xuất khỏi tài khoản</span>
-    </button>
-  </aside>
-
-  <!-- CỘT PHẢI: KHUNG NỘI DUNG CHÍNH CỦA TRANG PROFILE -->
-  <div class="up-main-panel">
-
-<?php if ($tab === 'profile'): ?>
-<!-- ==========================================================================
-     TAB 1: HỒ SƠ CÁ NHÂN, HỒ SƠ CẦU THỦ & THANH ĐIỂM UY TÍN (REPUTATION SCORE)
-     ========================================================================== -->
-<div class="rep-card">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-    <div>
-      <span style="display:inline-block;padding:4px 12px;border-radius:999px;background:<?=$repTier['color']?>;color:#fff;font-size:12px;font-weight:800;margin-bottom:6px">
-        <?=$repTier['badge_text']?>
-      </span>
-      <h3 style="margin:0;font-size:18px;color:#0f172a"><?=$repTier['title']?></h3>
-      <small style="margin:3px 0 0;color:#334155;font-size:13px"><?=$repTier['policy']?></small>
-    </div>
-    <div style="text-align:right">
-      <div style="font-size:32px;font-weight:800;color:<?=$repTier['color']?>;line-height:1"><?=$repScore?><span style="font-size:15px;color:#64748b">/100</span></div>
-      <small style="margin:2px 0 0;color:#64748b">Chỉ số Uy tín Đội trưởng</small>
-    </div>
-  </div>
-
-  <!-- Thanh tiến trình Điểm Uy Tín -->
-  <div class="rep-progress-track">
-    <div class="rep-progress-fill"></div>
-  </div>
-
-  <!-- Giải thích 3 Mức Điểm Uy Tín -->
-  <div class="rep-tiers-grid">
-    <div class="rep-tier-item <?=$repTier['code'] === 'GOOD' ? 'current' : ''?>">
-      <b style="color:#16a34a;display:block;margin-bottom:3px">🟢 Từ 80 – 100 điểm (Uy tín Tốt)</b>
-      <span style="color:#475569">Được giữ chỗ HOLD 10 phút, đặt cọc tiêu chuẩn, hủy trước 2h được hoàn 100% cọc vào Ví.</span>
-    </div>
-    <div class="rep-tier-item <?=$repTier['code'] === 'WARNING' ? 'current' : ''?>">
-      <b style="color:#d97706;display:block;margin-bottom:3px">🟡 Từ 60 – 79 điểm (Cảnh báo)</b>
-      <span style="color:#475569">Tài khoản có lịch sử hủy sát giờ. Bắt buộc thanh toán trước 100% khi đặt lịch.</span>
-    </div>
-    <div class="rep-tier-item <?=$repTier['code'] === 'RESTRICTED' ? 'current' : ''?>">
-      <b style="color:#dc2626;display:block;margin-bottom:3px">🔴 Dưới 60 điểm (Hạn chế)</b>
-      <span style="color:#475569">Khóa tính năng tự động giữ chỗ sân do nhiều lần bùng kèo / hủy sát giờ.</span>
-    </div>
-  </div>
-</div>
-
-<div style="display:grid;grid-template-columns:1.25fr 0.75fr;gap:22px;align-items:start">
-  <!-- Cột trái: Cập nhật Thông tin liên hệ & Hồ sơ Cầu thủ / Đội bóng -->
-  <div class="box">
-    <h3 style="margin:0 0 16px;font-size:17px;color:#0f172a">⚽ Hồ Sơ Liên Hệ & Hồ Sơ Cầu Thủ / Đội Bóng</h3>
-    <form method="post" enctype="multipart/form-data" class="form" style="max-width:100%">
-      <?=csrf_field()?>
-      <input type="hidden" name="action" value="update_profile">
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div>
-          <label>Tên đăng nhập (Cố định)</label>
-          <input value="<?=e($u['username'])?>" disabled>
-        </div>
-        <div>
-          <label>Ảnh đại diện (Avatar mới nếu muốn đổi)</label>
-          <input type="file" name="avatar_file" accept="image/*">
-        </div>
+      <div class="pro-meta-row">
+        <span>👤 @<?=e($u['username'])?></span>
+        <span>•</span>
+        <span>📞 <?=e($u['phone'] ?: 'Chưa cập nhật')?></span>
+        <span>•</span>
+        <span>✉️ <?=e($u['email'])?></span>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div>
-          <label>Họ và tên Đội trưởng *</label>
-          <input name="full_name" required value="<?=e($u['full_name'])?>">
-        </div>
-        <div>
-          <label>Số điện thoại liên hệ *</label>
-          <input name="phone" required value="<?=e($u['phone'])?>">
-        </div>
-      </div>
-
-      <label>Địa chỉ Email nhận vé điện tử QR *</label>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <input type="email" name="email" required value="<?=e($u['email'])?>" style="flex:1">
+      <div class="pro-tags-row">
+        <span class="pro-mini-chip">🏆 <?=e(!empty($uProf['team_name']) ? $uProf['team_name'] : 'FC ' . $u['full_name'])?></span>
+        <span class="pro-mini-chip">👟 Vị trí: <?=e($uProf['preferred_position'] ?: 'Tiền vệ')?></span>
+        <span class="pro-mini-chip">⚡ Trình độ: <?=e($uProf['skill_level'] ?: 'Phong trào')?></span>
         <?php if (!empty($u['google_id'])): ?>
-          <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:12px;font-weight:700;white-space:nowrap">
+          <span class="pro-mini-chip" style="background:rgba(59,130,246,0.25);border-color:#93c5fd;color:#dbeafe">
             ✔ Đã liên kết Google
           </span>
         <?php endif; ?>
       </div>
+    </div>
+  </div>
 
-      <hr style="border:0;border-top:1px dashed #cbd5e1;margin:16px 0">
-      <b style="display:block;font-size:14px;color:#15803d;margin-bottom:8px">🏆 Hồ sơ Cầu thủ & Đội bóng (Phục vụ Đặt sân & Ghép kèo nhanh)</b>
+  <div class="pro-hero-right">
+    <div class="pro-stat-cards">
+      <div class="pro-stat-box">
+        <small>Lịch đã đặt</small>
+        <b><?=count($allMyBookings)?> trận</b>
+      </div>
+      <div class="pro-stat-box">
+        <small>Điểm uy tín</small>
+        <b style="color:#4ade80"><?=$repScore?>/100</b>
+      </div>
+      <div class="pro-stat-box">
+        <small>Hạng uy tín</small>
+        <b><?=e($repTier['label'])?></b>
+      </div>
+    </div>
 
-      <div style="display:grid;grid-template-columns:1.3fr 0.7fr;gap:14px">
-        <div>
-          <label>Tên Đội bóng (Tên FC)</label>
-          <input name="team_name" value="<?=e($uProf['team_name'])?>" placeholder="VD: FC Anh Em Quận 1">
+    <div class="pro-hero-actions">
+      <?php if (is_pitch_owner($u)): ?>
+        <a href="owner-dashboard.php?tab=pitches" class="btn sm" style="background:#fde047;color:#052e16 !important;font-weight:800">
+          🛠️ Tùy chỉnh Sân của tôi →
+        </a>
+        <a href="owner-dashboard.php?tab=revenue" class="btn sm outline" style="border-color:#4ade80;color:#bbf7d0 !important">
+          📈 Bảng Doanh thu & Phí sàn
+        </a>
+      <?php endif; ?>
+      <?php if ($roleCode === 'ADMIN'): ?>
+        <a href="../admin/dashboard.php" class="btn sm bl">
+          🛡️ Trang Quản Trị →
+        </a>
+      <?php endif; ?>
+      <button type="button" class="btn sm red" onclick="openLogoutConfirmModal()">
+        🚪 Đăng xuất
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     2. THANH ĐIỀU HƯỚNG 3 TAB GỌN GÀNG (ĐÃ BỎ TAB VÍ NỘI BỘ)
+     ========================================================================== -->
+<div class="pro-tabs-bar">
+  <a href="profile.php?tab=profile" class="pro-tab-item <?=$tab === 'profile' ? 'active' : ''?>">
+    <span>👤 Thông tin cá nhân & Cầu thủ</span>
+  </a>
+  <a href="profile.php?tab=bookings" class="pro-tab-item <?=$tab === 'bookings' ? 'active' : ''?>">
+    <span>📅 Lịch đặt sân của tôi (<?=count($allMyBookings)?>)</span>
+  </a>
+  <a href="profile.php?tab=partner" class="pro-tab-item <?=$tab === 'partner' ? 'active' : ''?>">
+    <span>🤝 Đăng ký Hợp tác Mở sân <?=$partnerStatus === 'APPROVED' ? '✔' : ($partnerStatus === 'PENDING' ? '⏳' : '')?></span>
+  </a>
+</div>
+
+<?php if ($tab === 'profile'): ?>
+<!-- ==========================================================================
+     TAB 1: THÔNG TIN CÁ NHÂN, THẺ CẦU THỦ & BẢO MẬT TÀI KHOẢN (2 CỘT HIỆN ĐẠI)
+     ========================================================================== -->
+<div class="pro-rep-strip">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <div>
+      <span style="display:inline-block;padding:3px 10px;border-radius:999px;background:<?=$repTier['color']?>;color:#fff;font-size:11.5px;font-weight:800;margin-bottom:4px">
+        <?=$repTier['badge_text']?>
+      </span>
+      <b style="display:block;font-size:15.5px;color:#0f172a"><?=$repTier['title']?></b>
+      <small style="margin:2px 0 0;color:#334155;font-size:12.5px">
+        Đặt sân đúng hẹn và thanh toán đúng hạn giúp duy trì 100 điểm uy tín, mở khóa giữ chỗ HOLD 10 phút mọi khung giờ vàng.
+      </small>
+    </div>
+    <div style="text-align:right">
+      <div style="font-family:var(--font-sport);font-size:28px;font-weight:800;color:<?=$repTier['color']?>;line-height:1">
+        <?=$repScore?><span style="font-size:14px;color:#64748b">/100</span>
+      </div>
+      <small style="margin:2px 0 0;color:#64748b">Điểm Uy Tín</small>
+    </div>
+  </div>
+
+  <div class="pro-rep-track">
+    <div class="pro-rep-fill"></div>
+  </div>
+
+  <div class="pro-rep-tiers">
+    <div class="pro-rep-tier-box <?=$repTier['code'] === 'GOOD' ? 'current' : ''?>">
+      <b style="color:#16a34a;display:block">🟢 80 – 100 điểm (Uy tín Tốt)</b>
+      <span style="color:#475569">Được giữ chỗ HOLD 10 phút, hủy trước 2h không bị trừ điểm uy tín.</span>
+    </div>
+    <div class="pro-rep-tier-box <?=$repTier['code'] === 'WARNING' ? 'current' : ''?>">
+      <b style="color:#d97706;display:block">🟡 60 – 79 điểm (Cảnh báo)</b>
+      <span style="color:#475569">Yêu cầu thanh toán chuyển khoản trước 100% khi đặt lịch.</span>
+    </div>
+    <div class="pro-rep-tier-box <?=$repTier['code'] === 'RESTRICTED' ? 'current' : ''?>">
+      <b style="color:#dc2626;display:block">🔴 Dưới 60 điểm (Hạn chế)</b>
+      <span style="color:#475569">Tạm khóa giữ chỗ tự động do nhiều lần hủy sát giờ / bùng kèo.</span>
+    </div>
+  </div>
+</div>
+
+<div class="pro-main-grid">
+  <!-- CỘT TRÁI: THÔNG TIN LIÊN HỆ & THẺ CẦU THỦ / ĐỘI BÓNG -->
+  <div class="pro-card">
+    <div class="pro-card-head">
+      <h3>📝 Thông Tin Liên Hệ & Hồ Sơ Cầu Thủ</h3>
+      <span class="tag green">Đang hoạt động</span>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      <?=csrf_field()?>
+      <input type="hidden" name="action" value="update_profile">
+
+      <div class="pro-form-grid">
+        <div class="pro-field">
+          <label>Tên đăng nhập (Cố định)</label>
+          <input value="@<?=e($u['username'])?>" disabled>
         </div>
-        <div>
-          <label>Số áo yêu thích</label>
-          <input type="number" name="jersey_number" min="1" max="99" value="<?=(int)($uProf['jersey_number'] ?? 7)?>">
+        <div class="pro-field">
+          <label>Đổi ảnh đại diện (JPG, PNG, WEBP)</label>
+          <input type="file" name="avatar_file" accept="image/*" onchange="previewSelectedAvatar(this)">
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div>
+      <div class="pro-form-grid">
+        <div class="pro-field">
+          <label>Họ và tên người dùng *</label>
+          <input name="full_name" required value="<?=e($u['full_name'])?>" placeholder="Nhập họ và tên">
+        </div>
+        <div class="pro-field">
+          <label>Số điện thoại liên hệ *</label>
+          <input name="phone" required value="<?=e($u['phone'])?>" placeholder="VD: 0901234567">
+        </div>
+      </div>
+
+      <div class="pro-field">
+        <label>Địa chỉ Email nhận vé điện tử QR *</label>
+        <input type="email" name="email" required value="<?=e($u['email'])?>" placeholder="example@gmail.com">
+      </div>
+
+      <div class="pro-section-tag">⚽ Thẻ Cầu Thủ & Đội Bóng (Tự động điền nhanh khi Đặt sân & Cáp kèo)</div>
+
+      <div class="pro-form-grid">
+        <div class="pro-field">
+          <label>Tên Đội bóng (Tên FC)</label>
+          <input name="team_name" value="<?=e($uProf['team_name'])?>" placeholder="VD: FC Anh Em Sài Gòn">
+        </div>
+        <div class="pro-field">
+          <label>Số áo thi đấu yêu thích (1 - 99)</label>
+          <input type="number" name="jersey_number" min="1" max="99" value="<?=(int)($uProf['jersey_number'] ?? 10)?>">
+        </div>
+      </div>
+
+      <div class="pro-form-grid">
+        <div class="pro-field">
           <label>Vị trí sở trường trên sân</label>
           <select name="preferred_position">
             <?php foreach (['Thủ môn', 'Hậu vệ', 'Tiền vệ', 'Tiền đạo', 'Đa năng'] as $posOpt): ?>
@@ -935,7 +977,7 @@ include '../includes/header.php';
             <?php endforeach; ?>
           </select>
         </div>
-        <div>
+        <div class="pro-field">
           <label>Trình độ thi đấu</label>
           <select name="skill_level">
             <?php foreach (['Vui vẻ', 'Phong trào', 'Bán chuyên'] as $skOpt): ?>
@@ -945,51 +987,76 @@ include '../includes/header.php';
         </div>
       </div>
 
-      <label>Khu vực Quận / Huyện thường đá</label>
-      <input name="preferred_districts" value="<?=e($uProf['preferred_districts'])?>" placeholder="VD: Tân Bình, Bình Thạnh, Quận 1, Quận 7">
+      <div class="pro-field">
+        <label>Khu vực Quận / Huyện thường đá tại TP.HCM</label>
+        <input name="preferred_districts" value="<?=e($uProf['preferred_districts'])?>" placeholder="VD: Tân Bình, Bình Thạnh, Quận 1, Quận 7">
+      </div>
 
-      <label>Giới thiệu ngắn về lối chơi / Đội bóng</label>
-      <input name="bio" value="<?=e($uProf['bio'] ?? '')?>" placeholder="VD: Đá đẹp, văn minh, hay giao lưu tối Thứ 3 & Thứ 6">
+      <div class="pro-field">
+        <label>Giới thiệu ngắn về lối chơi / Khung giờ hay đá</label>
+        <input name="bio" value="<?=e($uProf['bio'] ?? '')?>" placeholder="VD: Đá giao hữu văn minh, thường ra sân tối Thứ 3 & Thứ 5">
+      </div>
 
-      <button class="btn" style="margin-top:16px;width:100%" type="submit">💾 LƯU HỒ SƠ CÁ NHÂN & CẦU THỦ</button>
+      <button class="btn" style="width:100%;padding:12px;margin-top:6px;font-weight:800" type="submit">
+        💾 LƯU THÔNG TIN CÁ NHÂN & HỒ SƠ CẦU THỦ
+      </button>
     </form>
   </div>
 
-  <!-- Cột phải: Đổi mật khẩu & Lịch sử Điểm Uy Tín gần đây -->
-  <div style="display:flex;flex-direction:column;gap:18px">
-    <div class="box">
-      <h3 style="margin:0 0 14px;font-size:16.5px;color:#0f172a">🔐 Đổi Mật Khẩu Bảo Vệ</h3>
-      <form method="post" class="form" style="max-width:100%">
+  <!-- CỘT PHẢI: ĐỔI MẬT KHẨU BẢO VỆ & LỊCH SỬ ĐIỂM UY TÍN -->
+  <div>
+    <div class="pro-card">
+      <div class="pro-card-head">
+        <h3>🔐 Đổi Mật Khẩu Bảo Vệ</h3>
+        <span class="tag blue">Bảo mật</span>
+      </div>
+
+      <form method="post">
         <?=csrf_field()?>
         <input type="hidden" name="action" value="change_password">
-        <label>Mật khẩu hiện tại</label>
-        <input type="password" name="old" placeholder="••••••••" required>
-        <label>Mật khẩu mới (>= 6 ký tự)</label>
-        <input type="password" name="new" placeholder="••••••••" required>
-        <label>Nhập lại mật khẩu mới</label>
-        <input type="password" name="new2" placeholder="••••••••" required>
-        <button class="btn" style="margin-top:14px;width:100%" type="submit">🔑 CẬP NHẬT MẬT KHẨU</button>
+
+        <div class="pro-field">
+          <label>Mật khẩu hiện tại</label>
+          <input type="password" name="old" placeholder="••••••••" required>
+        </div>
+
+        <div class="pro-field">
+          <label>Mật khẩu mới (Tối thiểu 6 ký tự)</label>
+          <input type="password" name="new" placeholder="••••••••" required>
+        </div>
+
+        <div class="pro-field">
+          <label>Nhập lại mật khẩu mới</label>
+          <input type="password" name="new2" placeholder="••••••••" required>
+        </div>
+
+        <button class="btn bl" style="width:100%;padding:11px;font-weight:800" type="submit">
+          🔑 CẬP NHẬT MẬT KHẨU MỚI
+        </button>
       </form>
     </div>
 
-    <div class="box">
-      <h4 style="margin:0 0 10px;font-size:15px;color:#0f172a">📊 Biến động Điểm Uy Tín gần đây</h4>
-      <?php
-      $repLogs = array_filter($walletTxs, fn($x) => (int)$x['reputation_delta'] !== 0);
-      if (!$repLogs):
-      ?>
-        <small style="color:#64748b">Chưa có biến động trừ điểm nào. Hãy duy trì lịch đặt đúng giờ!</small>
+    <div class="pro-card">
+      <div class="pro-card-head">
+        <h3>📊 Lịch Sử Điểm Uy Tín</h3>
+        <span class="tag green"><?=$repScore?>/100 điểm</span>
+      </div>
+
+      <?php if (!$repLogs): ?>
+        <div style="padding:12px;background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;font-size:13px;color:#475569">
+          ✔ Tài khoản của bạn chưa có lịch sử vi phạm hay hủy sân sát giờ. Hãy tiếp tục duy trì phong độ!
+        </div>
       <?php else: ?>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <?php foreach (array_slice($repLogs, 0, 5) as $rl): ?>
-            <div style="padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12px">
-              <div style="display:flex;justify-content:space-between;font-weight:800">
+          <?php foreach ($repLogs as $rl): ?>
+            <div style="padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12.5px">
+              <div style="display:flex;justify-content:space-between;font-weight:800;margin-bottom:3px">
                 <span style="color:<?=(int)$rl['reputation_delta'] >= 0 ? '#16a34a' : '#dc2626'?>">
                   <?=(int)$rl['reputation_delta'] >= 0 ? '+' . (int)$rl['reputation_delta'] : (int)$rl['reputation_delta']?> điểm uy tín
                 </span>
                 <span style="color:#64748b;font-weight:500"><?=date('d/m/Y H:i', strtotime($rl['created_at']))?></span>
               </div>
-              <div style="color:#334155;margin-top:3px"><?=e($rl['reason'])?></div>
+              <div style="color:#334155"><?=e($rl['reason'])?></div>
             </div>
           <?php endforeach; ?>
         </div>
@@ -1000,14 +1067,14 @@ include '../includes/header.php';
 
 <?php elseif ($tab === 'bookings'): ?>
 <!-- ==========================================================================
-     TAB 2: QUẢN LÝ LỊCH ĐẶT SÂN CỦA TÔI & HỦY SÂN HOÀN TIỀN VÍ / CẢNH BÁO UY TÍN
+     TAB 2: LỊCH ĐẶT SÂN CỦA TÔI & HỦY SÂN THÔNG MINH
      ========================================================================== -->
-<div class="box">
+<div class="pro-card">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
     <div>
-      <h3 style="margin:0;font-size:18px;color:#0f172a">📅 Quản Lý Lịch Đặt Sân Của Tôi</h3>
+      <h3 style="margin:0;font-size:18px;color:#0f172a">📅 Quản Lý Lịch Đặt Sân Cá Nhân</h3>
       <small style="margin:3px 0 0;color:#64748b">
-        Chính sách hoàn cọc tự động: Hủy trước giờ bóng lăn <b>&ge; 2 giờ</b> được hoàn 100% tiền vào Ví nội bộ. Hủy sát giờ (<b>&lt; 2 giờ</b>) bị trừ <b>-15 điểm uy tín</b>.
+        Hủy trước giờ bóng lăn <b>&ge; 2 giờ</b> không bị trừ điểm uy tín và được hoàn trả 100% tiền đã thanh toán. Hủy sát giờ (<b>&lt; 2 giờ</b>) bị trừ <b>-15 điểm uy tín</b>.
       </small>
     </div>
 
@@ -1041,13 +1108,13 @@ include '../includes/header.php';
           <th>Ngày & Giờ thi đấu</th>
           <th>Tổng tiền / Thanh toán</th>
           <th>Trạng thái</th>
-          <th>Quyền Hủy & Thao tác</th>
+          <th>Thao tác</th>
         </tr>
         <?php foreach ($filteredBookings as $bRow):
-            $kickoffTs = strtotime($bRow['booking_date'] . ' ' . $bRow['start_time']);
-            $secLeft   = $kickoffTs - time();
-            $hrsLeft   = round($secLeft / 3600, 1);
-            $canCancel = in_array($bRow['status'], ['pending', 'confirmed'], true) && $secLeft > -3600;
+            $kickoffTs    = strtotime($bRow['booking_date'] . ' ' . $bRow['start_time']);
+            $secLeft      = $kickoffTs - time();
+            $hrsLeft      = round($secLeft / 3600, 1);
+            $canCancel    = in_array($bRow['status'], ['pending', 'confirmed'], true) && $secLeft > 0;
             $isSafeCancel = $secLeft >= 7200;
         ?>
           <tr>
@@ -1065,7 +1132,7 @@ include '../includes/header.php';
             <td>
               <b style="color:#16a34a"><?=money($bRow['total_price'])?></b>
               <small style="margin:2px 0 0">
-                <?=$bRow['pay_status'] === 'paid' ? '🟢 Đã thanh toán' : ($bRow['pay_status'] === 'refunded' ? '💸 Đã hoàn Ví' : '⏳ Chưa thanh toán')?>
+                <?=$bRow['pay_status'] === 'paid' ? '🟢 Đã thanh toán' : ($bRow['pay_status'] === 'refunded' ? '↩ Đã hoàn tiền' : '⏳ Chưa thanh toán')?>
               </small>
             </td>
             <td>
@@ -1090,16 +1157,16 @@ include '../includes/header.php';
 
                 <?php if ($canCancel): ?>
                   <?php if ($isSafeCancel): ?>
-                    <form method="post" style="display:inline" onsubmit="return confirm('Hủy hợp lệ trước giờ bóng lăn (còn <?=$hrsLeft?>h): Tiền đã thanh toán sẽ được hoàn 100% vào Ví nội bộ và không bị trừ điểm uy tín. Xác nhận hủy?')">
+                    <form method="post" style="display:inline" onsubmit="return confirm('Hủy hợp lệ trước giờ bóng lăn (còn <?=$hrsLeft?>h): Không bị trừ điểm uy tín. Xác nhận hủy lịch?')">
                       <?=csrf_field()?>
                       <input type="hidden" name="action" value="cancel_booking">
                       <input type="hidden" name="booking_id" value="<?=(int)$bRow['id']?>">
                       <button type="submit" class="btn sm outline" style="border-color:#16a34a;color:#15803d">
-                        💸 Hủy & Hoàn Ví (Còn <?=$hrsLeft?>h)
+                        ↩ Hủy hợp lệ (Còn <?=$hrsLeft?>h)
                       </button>
                     </form>
                   <?php else: ?>
-                    <form method="post" style="display:inline" onsubmit="return confirm('⚠️ CẢNH BÁO HỦY SÁT GIỜ (Chỉ còn <?=$hrsLeft?> giờ < 2 giờ quy định):\n- Không được hoàn lại tiền cọc\n- Bị TRỪ -15 ĐIỂM UY TÍN\nBạn có chắc chắn vẫn muốn hủy khẩn cấp không?')">
+                    <form method="post" style="display:inline" onsubmit="return confirm('⚠️ CẢNH BÁO HỦY SÁT GIỜ (Chỉ còn <?=$hrsLeft?> giờ < 2 giờ quy định):\n- Không được hoàn lại tiền cọc\n- Bị TRỪ -15 ĐIỂM UY TÍN\nBạn có chắc chắn vẫn muốn hủy không?')">
                       <?=csrf_field()?>
                       <input type="hidden" name="action" value="cancel_booking">
                       <input type="hidden" name="booking_id" value="<?=(int)$bRow['id']?>">
@@ -1111,7 +1178,7 @@ include '../includes/header.php';
                   <?php endif; ?>
                 <?php endif; ?>
 
-                <a class="btn sm outline" href="my-bookings.php">🎫 Xem vé QR</a>
+                <a class="btn sm outline" href="payment-demo.php?booking_id=<?=(int)$bRow['id']?>">🎫 Vé QR</a>
               </div>
             </td>
           </tr>
@@ -1121,117 +1188,10 @@ include '../includes/header.php';
   <?php endif; ?>
 </div>
 
-<?php elseif ($tab === 'wallet'): ?>
-<!-- ==========================================================================
-     TAB 3: VÍ NỘI BỘ (WALLET_BALANCE), ĐIỂM THƯỞNG & LỊCH SỬ GIAO DỊCH
-     ========================================================================== -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
-  <!-- Khối Số dư Ví nội bộ & Nạp nhanh -->
-  <div class="box" style="background:linear-gradient(135deg,#064e3b,#047857);color:#ffffff;border:0">
-    <small style="color:#a7f3d0;font-weight:700;text-transform:uppercase">💰 SỐ DƯ VÍ NỘI BỘ SÂN BÓNG PRO</small>
-    <div style="font-size:34px;font-weight:800;margin:6px 0 10px;color:#ffffff"><?=money($walletBalance)?></div>
-    <p style="margin:0 0 16px;font-size:12.5px;color:#d1fae5;line-height:1.5">
-      Ví nội bộ dùng để nhận <b>tiền hoàn cọc tức thì (100%)</b> khi hủy sân trước giờ quy định, chia tiền cáp kèo hoặc thanh toán đặt sân nhanh không cần quét lại QR.
-    </p>
-    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap">
-      <?=csrf_field()?>
-      <input type="hidden" name="action" value="wallet_topup_demo">
-      <select name="amount" style="flex:1;min-width:160px;margin:0;background:#fff;color:#0f172a;font-weight:700;border-radius:8px;padding:8px 12px">
-        <option value="100000">+ Nạp 100.000đ vào Ví (Demo)</option>
-        <option value="200000" selected>+ Nạp 200.000đ vào Ví (Demo)</option>
-        <option value="500000">+ Nạp 500.000đ vào Ví (Demo)</option>
-      </select>
-      <button type="submit" class="btn" style="background:#fde047;color:#0f172a;font-weight:800">⚡ Nạp tiền vào Ví</button>
-    </form>
-  </div>
-
-  <!-- Khối Điểm thưởng tích lũy (Loyalty Points) -->
-  <div class="box" style="display:flex;flex-direction:column;justify-content:space-between">
-    <div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <small style="color:#15803d;font-weight:800;text-transform:uppercase">🎁 ĐIỂM THƯỞNG TÍCH LŨY (LOYALTY POINTS)</small>
-        <span class="tag green">100 điểm = 20.000đ</span>
-      </div>
-      <div style="font-size:32px;font-weight:800;color:#0f172a;margin:6px 0"><?=$loyaltyPoints?> <span style="font-size:15px;color:#64748b">điểm</span></div>
-      <p style="margin:0 0 14px;font-size:12.5px;color:#475569;line-height:1.5">
-        Mỗi lần đặt sân hoàn tất hoặc nạp ví, bạn được cộng điểm tích lũy. Đủ <b>100 điểm</b> có thể quy đổi ngay thành <b>20.000đ tiền mặt trong Ví nội bộ</b>!
-      </p>
-    </div>
-    <form method="post">
-      <?=csrf_field()?>
-      <input type="hidden" name="action" value="redeem_loyalty">
-      <button type="submit" class="btn" style="width:100%" <?=$loyaltyPoints < 100 ? 'disabled' : ''?>>
-        🎁 Đổi 100 Điểm Thưởng lấy +20.000đ vào Ví nội bộ
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- Bảng Lịch sử giao dịch Ví & Điểm uy tín -->
-<div class="box">
-  <h3 style="margin:0 0 14px;font-size:17px;color:#0f172a">📜 Lịch Sử Biến Động Số Dư Ví & Điểm Uy Tín</h3>
-  <?php if (!$walletTxs): ?>
-    <div class="empty">Chưa có giao dịch nào trong Ví nội bộ của bạn.</div>
-  <?php else: ?>
-    <div class="tw">
-      <table>
-        <tr>
-          <th>Mã GD</th>
-          <th>Thời gian</th>
-          <th>Loại giao dịch</th>
-          <th>Biến động Ví</th>
-          <th>Số dư sau GD</th>
-          <th>Điểm Uy tín</th>
-          <th>Nội dung / Lý do chi tiết</th>
-        </tr>
-        <?php foreach ($walletTxs as $tx):
-            $typeMap = [
-                'REFUND'       => ['💸 Hoàn tiền cọc', 'green'],
-                'PAYMENT'      => ['⚽ Thanh toán sân', 'blue'],
-                'DEPOSIT'      => ['💳 Nạp tiền Ví', 'green'],
-                'REPUTATION'   => ['🛡️ Điểm uy tín', 'amber'],
-                'LOYALTY'      => ['🎁 Đổi điểm thưởng', 'green'],
-                'ADMIN_ADJUST' => ['⚙️ Admin điều chỉnh', 'blue'],
-            ];
-            [$tLabel, $tColor] = $typeMap[$tx['tx_type']] ?? [$tx['tx_type'], 'gray'];
-        ?>
-          <tr>
-            <td><b>#<?=(int)$tx['id']?></b></td>
-            <td><?=date('d/m/Y H:i', strtotime($tx['created_at']))?></td>
-            <td><span class="tag <?=$tColor?>"><?=$tLabel?></span></td>
-            <td>
-              <?php if ((float)$tx['amount'] != 0): ?>
-                <b style="color:<?=(float)$tx['amount'] > 0 ? '#16a34a' : '#dc2626'?>">
-                  <?=(float)$tx['amount'] > 0 ? '+' . money($tx['amount']) : '-' . money(abs($tx['amount']))?>
-                </b>
-              <?php else: ?>
-                <span style="color:#94a3b8">—</span>
-              <?php endif; ?>
-            </td>
-            <td><b><?=money($tx['balance_after'])?></b></td>
-            <td>
-              <?php if ((int)$tx['reputation_delta'] !== 0): ?>
-                <b style="color:<?=(int)$tx['reputation_delta'] > 0 ? '#16a34a' : '#dc2626'?>">
-                  <?=(int)$tx['reputation_delta'] > 0 ? '+' . (int)$tx['reputation_delta'] : (int)$tx['reputation_delta']?>đ
-                </b>
-                <small style="display:inline;color:#64748b">(→ <?=(int)$tx['reputation_after']?>)</small>
-              <?php else: ?>
-                <span style="color:#94a3b8">Giữ nguyên (<?=(int)$tx['reputation_after']?>)</span>
-              <?php endif; ?>
-            </td>
-            <td><?=e($tx['reason'])?></td>
-          </tr>
-        <?php endforeach; ?>
-      </table>
-    </div>
-  <?php endif; ?>
-</div>
-
 <?php elseif ($tab === 'partner'): ?>
 <!-- ==========================================================================
-     TAB 4: ĐĂNG KÝ HỢP TÁC MỞ SÂN (MULTI-STEP FORM + BẢN ĐỒ LEAFLET + TIẾN TRÌNH DUYỆT)
+     TAB 3: ĐĂNG KÝ HỢP TÁC MỞ SÂN (MULTI-STEP FORM + BẢN ĐỒ LEAFLET + TIẾN TRÌNH DUYỆT)
      ========================================================================== -->
-
 <?php if ($partnerStatus === 'APPROVED' || is_pitch_owner($u)): ?>
   <?php $myProfileVenues = get_owner_venues($u); ?>
   <div class="partner-hero-banner" style="margin-bottom:20px">
@@ -1239,23 +1199,19 @@ include '../includes/header.php';
       <span class="partner-verified-pill verified" style="margin-bottom:8px">✔ ĐÃ XÁC MINH ĐỐI TÁC CHỦ SÂN (PITCH_OWNER)</span>
       <h2>🏟 Kênh Chủ Sân & Hồ Sơ Đối Tác Đã Kích Hoạt</h2>
       <small>
-        Bạn đang sở hữu <b><?=count($myProfileVenues)?> Cụm sân</b> trên bản đồ Sân Bóng Pro. Quản lý sân 5/7/11, bảng giá khung giờ, lịch POS và rút tiền đối soát tại Partner Portal.
+        Bạn đang sở hữu <b><?=count($myProfileVenues)?> Cụm sân</b> trên bản đồ Sân Bóng Pro. Quản lý sân 5/7/11, bảng giá khung giờ và lịch POS tại Partner Portal.
       </small>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a href="owner-dashboard.php" class="btn" style="background:#fde047;color:#052e16 !important;font-weight:800;padding:12px 20px">
         🏟 Mở Kênh Chủ Sân (Partner Portal) →
       </a>
-      <a href="owner-dashboard.php?tab=wallet" class="btn outline" style="color:#fff !important;border-color:#86efac">
-        🏦 Ví Đối tác & Rút tiền
-      </a>
     </div>
   </div>
 <?php endif; ?>
 
 <?php if ($latestApp): ?>
-  <!-- Khối Theo dõi Tiến trình xét duyệt Hồ sơ Mở sân (Đồng bộ Badge & Card với Partner Dashboard) -->
-  <div class="box" style="margin-bottom:22px;border-left:5px solid <?=$latestApp['status'] === 'APPROVED' ? '#16a34a' : ($latestApp['status'] === 'REJECTED' ? '#dc2626' : '#f59e0b')?>">
+  <div class="pro-card" style="border-left:5px solid <?=$latestApp['status'] === 'APPROVED' ? '#16a34a' : ($latestApp['status'] === 'REJECTED' ? '#dc2626' : '#f59e0b')?>">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
@@ -1286,16 +1242,14 @@ include '../includes/header.php';
   </div>
 <?php endif; ?>
 
-<!-- Biểu mẫu Multi-Step (2 Bước) Đăng ký Hợp tác Mở sân kèm Bản đồ Leaflet (Google Maps Tiles) -->
-<div class="box">
+<div class="pro-card">
   <h3 style="margin:0 0 6px;font-size:19px;color:#0f172a">
-    🤝 <?=($latestApp && $latestApp['status'] === 'REJECTED') ? 'Cập Nhật & Gửi Lại Hồ Sơ Đăng Ký Chủ Sân' : 'Đăng Ký Hợp Tác Mở Sân Bóng Mới (Multi-step Form)'?>
+    🤝 <?=($latestApp && $latestApp['status'] === 'REJECTED') ? 'Cập Nhật & Gửi Lại Hồ Sơ Đăng Ký Chủ Sân' : 'Đăng Ký Hợp Tác Mở Sân Bóng Mới'?>
   </h3>
   <small style="margin:0 0 16px;color:#64748b">
     Hoàn tất 2 bước dưới đây để đưa cụm sân của bạn lên bản đồ Sân Bóng Pro và kích hoạt Kênh Quản Lý Chủ Sân.
   </small>
 
-  <!-- Thanh chuyển Bước 1 & Bước 2 -->
   <div class="partner-stepper">
     <div class="ps-step active" id="stepHeader1" onclick="switchPartnerStep(1)">
       <span class="ps-num">1</span>
@@ -1317,7 +1271,6 @@ include '../includes/header.php';
     <?=csrf_field()?>
     <input type="hidden" name="action" value="submit_partner_application">
 
-    <!-- ==================== BƯỚC 1: THÔNG TIN SÂN & BẢN ĐỒ LEAFLET ==================== -->
     <div id="partnerStep1">
       <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:14px">
         <div>
@@ -1359,7 +1312,6 @@ include '../includes/header.php';
         </div>
       </div>
 
-      <!-- Khung chọn tọa độ trên Bản đồ Leaflet.js (Hỗ trợ Google Maps Tiles miễn phí + Kéo thả ghim) -->
       <div style="margin-top:12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
           <div>
@@ -1392,7 +1344,6 @@ include '../includes/header.php';
       </div>
     </div>
 
-    <!-- ==================== BƯỚC 2: QUY MÔ SÂN, PHÁP LÝ & NGÂN HÀNG ==================== -->
     <div id="partnerStep2" style="display:none">
       <b style="display:block;font-size:14.5px;color:#15803d;margin-bottom:8px">⚽ 1. Cơ cấu số lượng sân con & Bảng giá dự kiến</b>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
@@ -1566,7 +1517,6 @@ include '../includes/header.php';
 
     partnerMap = L.map('partnerPickerMap').setView([initLat, initLng], 15);
 
-    // Sử dụng Google Maps Tiles miễn phí (kèm fallback OpenStreetMap)
     const googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       maxZoom: 20,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
@@ -1593,69 +1543,7 @@ include '../includes/header.php';
     });
   });
 </script>
-<?php elseif ($tab === 'security'): ?>
-<!-- ==========================================================================
-     TAB 5: BẢO MẬT TÀI KHOẢN, ĐỔI MẬT KHẨU & ĐĂNG XUẤT AN TOÀN
-     ========================================================================== -->
-<div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:22px;align-items:start">
-  <div class="box">
-    <h3 style="margin:0 0 14px;font-size:18px;color:#0f172a">🔐 Đổi Mật Khẩu Bảo Vệ Tài Khoản</h3>
-    <small style="color:#64748b;display:block;margin-bottom:16px">
-      Sử dụng mật khẩu mạnh tối thiểu 6 ký tự để bảo vệ số dư Ví nội bộ và quyền quản lý Cụm sân của bạn.
-    </small>
-    <form method="post" class="form" style="max-width:100%">
-      <?=csrf_field()?>
-      <input type="hidden" name="action" value="change_password">
-      <input type="hidden" name="return_tab" value="security">
-
-      <label>Mật khẩu hiện tại *</label>
-      <input type="password" name="old" placeholder="••••••••" required>
-
-      <label>Mật khẩu mới (&ge; 6 ký tự) *</label>
-      <input type="password" name="new" placeholder="••••••••" required>
-
-      <label>Nhập lại mật khẩu mới *</label>
-      <input type="password" name="new2" placeholder="••••••••" required>
-
-      <button class="btn" style="margin-top:16px;width:100%" type="submit">
-        🔑 CẬP NHẬT MẬT KHẨU MỚI
-      </button>
-    </form>
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:18px">
-    <div class="box" style="border-left:4px solid #16a34a">
-      <h4 style="margin:0 0 10px;color:#0f172a">🛡️ Trạng thái Phiên đăng nhập & Phân quyền</h4>
-      <div style="font-size:13.5px;line-height:1.7;color:#334155">
-        <div>• Tài khoản: <b>@<?=e($u['username'])?></b> (ID #<?=(int)$u['id']?>)</div>
-        <div>• Vai trò hệ thống: <b><?=e($roleCode)?></b></div>
-        <div>• Trạng thái tài khoản: <b><?=e($u['account_status'] ?? 'ACTIVE')?></b></div>
-        <div>• Trạng thái đối tác: <b><?=e($partnerStatus)?></b></div>
-        <div>• Liên kết mạng xã hội:
-          <?php if (!empty($u['google_id'])): ?>
-            <b style="color:#1d4ed8">✔ Đã liên kết Google (<?=e($u['email'])?>)</b>
-          <?php else: ?>
-            <span style="color:#64748b">Chưa liên kết Google (Đăng nhập Google cùng Email để tự động liên kết)</span>
-          <?php endif; ?>
-        </div>
-      </div>
-    </div>
-
-    <div class="box" style="background:#fef2f2;border:1.5px solid #fecaca">
-      <h4 style="margin:0 0 8px;color:#991b1b">🚪 Đăng Xuất Khỏi Tài Khoản</h4>
-      <small style="color:#b91c1c;display:block;margin-bottom:14px;line-height:1.5">
-        Khi đăng xuất, hệ thống sẽ xóa toàn bộ Phiên làm việc (Session), Cookie xác thực và dữ liệu tạm trên trình duyệt của bạn.
-      </small>
-      <button type="button" class="btn red" style="width:100%;padding:12px;font-weight:800" onclick="openLogoutConfirmModal()">
-        🚪 ĐĂNG XUẤT KHỎI HỆ THỐNG
-      </button>
-    </div>
-  </div>
-</div>
 <?php endif; ?>
-
-  </div><!-- /.up-main-panel -->
-</div><!-- /.up-layout-shell -->
 
 <!-- HỘP THOẠI XÁC NHẬN ĐĂNG XUẤT (CONFIRM LOGOUT MODAL) -->
 <div class="logout-modal-backdrop" id="logoutConfirmModal" onclick="if(event.target===this) closeLogoutConfirmModal()">
@@ -1679,6 +1567,17 @@ include '../includes/header.php';
 </div>
 
 <script>
+  function previewSelectedAvatar(input) {
+    if (!input || !input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var box = document.getElementById('heroAvatarBox');
+      if (box) {
+        box.innerHTML = '<img src="' + e.target.result + '" alt="Avatar Preview" style="width:100%;height:100%;object-fit:cover">';
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
   function openLogoutConfirmModal() {
     var modal = document.getElementById('logoutConfirmModal');
     if (modal) modal.style.display = 'flex';
@@ -1691,23 +1590,21 @@ include '../includes/header.php';
     var btn = document.getElementById('btnConfirmLogoutNow');
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Đang đăng xuất...';
+      btn.textContent = '⏳ Đang đăng xuất...';
     }
     try {
-      localStorage.removeItem('sb_user_cache');
-      sessionStorage.clear();
-    } catch (e) {}
-    try {
-      var res = await fetch('../logout.php?ajax=1', {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
+      var res = await fetch('<?=project_base()?>logout.php?ajax=1&redirect=home', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
       });
       var data = await res.json();
-      window.location.href = (data && data.redirect) ? data.redirect : '../login.php';
-    } catch (err) {
-      window.location.href = '../logout.php';
-    }
+      if (data && data.redirect) {
+        window.location.href = data.redirect;
+        return;
+      }
+    } catch (e) {}
+    window.location.href = '<?=project_base()?>logout.php?redirect=home';
   }
 </script>
 

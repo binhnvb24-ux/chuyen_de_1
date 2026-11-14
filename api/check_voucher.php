@@ -7,16 +7,17 @@
 require_once '../includes/auth.php';
 header('Content-Type: application/json; charset=utf-8');
 
-// 1. Nhận mã giảm giá và tạm tính đơn hàng
-$code = strtoupper(trim($_GET['code'] ?? $_POST['code'] ?? ''));
+// 1. Nhận mã giảm giá, mã sân đang đặt và tạm tính đơn hàng
+$code     = strtoupper(trim($_GET['code'] ?? $_POST['code'] ?? ''));
 $subtotal = (int)($_GET['subtotal'] ?? $_POST['subtotal'] ?? 0);
+$fieldId  = (int)($_GET['field_id'] ?? $_POST['field_id'] ?? 0);
 
 if ($code === '') {
   echo json_encode(['ok' => false, 'message' => 'Vui lòng nhập mã giảm giá.']);
   exit;
 }
 
-// 2. Truy vấn thông tin Voucher và kiểm tra hạn dùng, số lượt dùng, giá trị đơn tối thiểu
+// 2. Truy vấn thông tin Voucher và kiểm tra hạn dùng, số lượt dùng, phạm vi Chủ sân / Cụm sân, giá trị đơn tối thiểu
 $stmt = $pdo->prepare("SELECT * FROM vouchers WHERE code=? AND status='active'");
 $stmt->execute([$code]);
 $v = $stmt->fetch();
@@ -24,6 +25,20 @@ $v = $stmt->fetch();
 if (!$v) {
   echo json_encode(['ok' => false, 'message' => 'Mã giảm giá không tồn tại hoặc đã ngừng kích hoạt.']);
   exit;
+}
+
+// Kiểm tra mã giảm giá có thuộc Đối tác Chủ sân / Cụm sân của sân đang đặt hay không
+if ($fieldId > 0 && function_exists('can_apply_voucher_to_field')) {
+  $stF = $pdo->prepare("SELECT id, owner_id, venue_id, parent_id, name FROM fields WHERE id = ? LIMIT 1");
+  $stF->execute([$fieldId]);
+  $fRow = $stF->fetch(PDO::FETCH_ASSOC);
+  if ($fRow) {
+    $scopeCheck = can_apply_voucher_to_field($v, $fRow);
+    if (!$scopeCheck['ok']) {
+      echo json_encode(['ok' => false, 'message' => $scopeCheck['message']]);
+      exit;
+    }
+  }
 }
 if ($v['expired_at'] < date('Y-m-d')) {
   echo json_encode(['ok' => false, 'message' => 'Mã giảm giá này đã hết hạn sử dụng.']);

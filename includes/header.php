@@ -97,7 +97,7 @@ if (isset($pdo)) {
               <?php elseif (is_pitch_owner($u)): ?>
                 🏟 Chủ sân đối tác • Hồ sơ
               <?php else: ?>
-                🛡️ <?=(int)($u['reputation_score'] ?? 100)?>đ • 💰 <?=money($u['wallet_balance'] ?? 0)?>
+                ⚽ Cầu thủ • 🛡️ Uy tín <?=(int)($u['reputation_score'] ?? 100)?>/100
               <?php endif; ?>
             </small>
           </div>
@@ -143,8 +143,8 @@ if (isset($pdo)) {
 </div>
 
 <!-- Khung bố cục 2 cột: Sidebar menu trái + Nội dung chính bên phải (Tự động mở toàn màn hình khi ở Partner Workspace / Trang Hồ sơ có Sidebar riêng) -->
-<div class="layout one <?=in_array($active ?? '', ['owner', 'prof'], true) ? 'partner-workspace-mode' : ''?>">
-  <?php if (!in_array($active ?? '', ['owner', 'prof'], true)): ?>
+<div class="layout one <?=in_array($active ?? '', ['owner'], true) ? 'partner-workspace-mode' : ''?>">
+  <?php if (!in_array($active ?? '', ['owner'], true)): ?>
   <nav class="side">
     <div class="side-user-card">
       <div class="side-avatar" style="overflow:hidden">
@@ -173,7 +173,7 @@ if (isset($pdo)) {
       'match'   => ['user/matchmaking.php', '⚔️ Cáp kèo / Tìm đối'],
       'mine'    => ['user/my-bookings.php', '🎫 Vé của tôi'],
       'noti'    => ['user/notifications.php', '🔔 Thông báo' . ($unread_count ? ' <span class="badge-mini green">'.$unread_count.'</span>' : '')],
-      'prof'    => ['user/profile.php', '👤 Hồ sơ & Ví nội bộ'],
+      'prof'    => ['user/profile.php', '👤 Thông tin cá nhân'],
     ];
     if ($u && is_pitch_owner($u)) {
       $nav_items['owner'] = ['user/owner-dashboard.php', '🏟 Kênh Chủ Sân'];

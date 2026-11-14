@@ -175,26 +175,25 @@ include '../includes/admin_header.php';
      ========================================================================== -->
 <div class="quick">
   <div class="box">
-    <b>🏟 Quản lý Sân & Dịch vụ</b>
+    <b>🏟 Quản lý Sân & Chủ sân Đối tác</b>
     <small>
-      Thêm mới sân bóng, cập nhật giá thuê theo giờ và quản lý dịch vụ tiện ích
-      (thuê bóng, áo Bib, nước uống, trọng tài).
+      Thêm mới sân bóng, cấu hình sơ đồ ghép/tách sân 5-7-11 và phê duyệt hồ sơ mở sân của Đối tác.
     </small>
     <div style="display:flex;gap:10px;width:100%;margin-top:auto">
       <a class="btn" style="flex:1" href="fields.php">Quản lý sân →</a>
-      <a class="btn bl" style="flex:1" href="services.php">Dịch vụ →</a>
+      <a class="btn bl" style="flex:1" href="partners.php">Duyệt Chủ sân →</a>
     </div>
   </div>
 
   <div class="box">
-    <b>💳 Đối soát Đặt sân & Voucher</b>
+    <b>💳 Đối soát Đặt sân & Doanh thu</b>
     <small>
-      Duyệt lịch đặt sân, xác nhận thanh toán Demo (VietQR / MoMo / VNPay)
-      và phát hành mã giảm giá khuyến mãi.
+      Duyệt lịch đặt sân, xác nhận thanh toán (VietQR / MoMo / VNPay)
+      và đối soát doanh thu từ các cụm sân đối tác.
     </small>
     <div style="display:flex;gap:10px;width:100%;margin-top:auto">
       <a class="btn bl" style="flex:1" href="bookings.php">Đơn đặt sân →</a>
-      <a class="btn pu" style="flex:1" href="vouchers.php">Mã Voucher →</a>
+      <a class="btn pu" style="flex:1" href="revenue.php">Doanh thu →</a>
     </div>
   </div>
 

@@ -65,10 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($a === 'ai_payment') {
         set_setting('ai_bot_name',       trim($_POST['ai_bot_name'] ?? 'Trợ lý AI Sân Bóng'));
         set_setting('gemini_api_key',    trim($_POST['gemini_api_key'] ?? ''));
-        set_setting('bank_id',           strtoupper(trim($_POST['bank_id'] ?? 'MB')));
-        set_setting('bank_account_no',   trim($_POST['bank_account_no'] ?? '0901234567'));
-        set_setting('bank_account_name', strtoupper(trim($_POST['bank_account_name'] ?? 'HE THONG SAN BONG PRO')));
-        set_setting('auto_confirm_paid', isset($_POST['auto_confirm_paid']) ? '1' : '0');
+        set_setting('bank_id',              strtoupper(trim($_POST['bank_id'] ?? 'MB')));
+        set_setting('bank_account_no',      trim($_POST['bank_account_no'] ?? '0901234567'));
+        set_setting('bank_account_name',    strtoupper(trim($_POST['bank_account_name'] ?? 'HE THONG SAN BONG PRO')));
+        set_setting('platform_fee_percent', (string)max(1, min(50, (int)($_POST['platform_fee_percent'] ?? 10))));
+        set_setting('auto_confirm_paid',    isset($_POST['auto_confirm_paid']) ? '1' : '0');
 
         flash('ok', 'Đã lưu cấu hình Trợ lý AI & Cổng thanh toán Demo.');
     }
@@ -104,7 +105,7 @@ include '../includes/admin_header.php';
         <label>Google Gemini API Key (Để trống sẽ dùng Smart Local AI tích hợp sẵn)</label>
         <input
           name="gemini_api_key"
-          placeholder="AIzaSy' . '..."
+          placeholder="AIzaSy..."
           value="<?=e(get_setting('gemini_api_key', ''))?>"
         >
 
@@ -120,24 +121,33 @@ include '../includes/admin_header.php';
         </label>
       </div>
 
-      <!-- Cột phải: Cấu hình ngân hàng tạo mã QR tự động -->
+      <!-- Cột phải: Cấu hình Tài khoản Ngân hàng Admin thu hộ & Tỷ lệ Phí sàn -->
       <div>
-        <label>Mã Ngân hàng VietQR (VD: MB, VCB, TCB, ACB, BIDV)</label>
+        <label>Mã Ngân hàng VietQR của Admin (VD: MB, VCB, TCB, ACB, BIDV)</label>
         <input
           name="bank_id"
           value="<?=e(get_setting('bank_id', 'MB'))?>"
         >
 
-        <label>Số tài khoản nhận tiền Demo</label>
+        <label>Số tài khoản Admin nhận tiền đặt sân (100% dòng tiền khách trả)</label>
         <input
           name="bank_account_no"
           value="<?=e(get_setting('bank_account_no', '0901234567'))?>"
         >
 
-        <label>Tên chủ tài khoản</label>
+        <label>Tên chủ tài khoản Admin (In hoa không dấu)</label>
         <input
           name="bank_account_name"
           value="<?=e(get_setting('bank_account_name', 'HE THONG SAN BONG PRO'))?>"
+        >
+
+        <label>Tỷ lệ Phí sàn chiết khấu từ Chủ sân (% mỗi đơn đặt thành công)</label>
+        <input
+          type="number"
+          name="platform_fee_percent"
+          min="1"
+          max="50"
+          value="<?=e((string)get_platform_fee_percent())?>"
         >
       </div>
     </div>

@@ -22,7 +22,10 @@ if (!function_exists('get_latest_football_news')) {
      */
     function get_latest_football_news(int $limit = 6, bool $forceRefresh = false): array
     {
-        $cacheDir  = __DIR__ . '/../uploads';
+        $cacheDir  = __DIR__ . '/../assets/images/uploads';
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0775, true);
+        }
         $cacheFile = $cacheDir . '/football_news_cache.json';
         $cacheTtl  = 900; // Lưu cache 15 phút (900 giây)
 

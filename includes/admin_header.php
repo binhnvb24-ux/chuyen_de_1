@@ -17,14 +17,13 @@ if (isset($pdo)) {
   } catch (Exception $e) {}
 }
 
-// Danh sách các mục menu quản lý của Admin
+// Danh sách các mục menu quản lý của Admin (Voucher do từng Tài khoản Đối tác Chủ sân tự thiết lập)
 $pages = [
   'dashboard' => ['🏠', 'Tổng quan', 0],
   'calendar'  => ['📅', 'Xem lịch trực quan', 0],
   'bookings'  => ['📋', 'Đặt sân & Thanh toán', $pending_bk_count],
   'partners'  => ['🤝', 'Duyệt Chủ sân Đối tác', $pending_partner_count],
   'fields'    => ['🏟', 'Quản lý sân & Chủ sân', 0],
-  'vouchers'  => ['🎟', 'Mã giảm giá Voucher', 0],
   'users'     => ['👥', 'Tài khoản & Điểm uy tín', 0],
   'revenue'   => ['📈', 'Thống kê doanh thu', 0],
   'reports'   => ['📊', 'Báo cáo hiệu suất', 0],
@@ -40,6 +39,8 @@ $pages = [
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?=$base?>assets/css/style.css?v=<?= @filemtime(__DIR__.'/../assets/css/style.css') ?: time() ?>">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <link rel="stylesheet" href="<?=$base?>assets/css/admin.css?v=<?= @filemtime(__DIR__.'/../assets/css/admin.css') ?: time() ?>">
   <style>
     /* Nút icon tròn chuyển chế độ Sáng / Tối trên thanh Topbar */

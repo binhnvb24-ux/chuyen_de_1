@@ -80,6 +80,216 @@ function csrf_check() {
 /**
  * Hàm project_base(): Trả về đường dẫn thư mục gốc của website (VD: "/quan-ly-san-bong/").
  */
+/**
+ * Hàm get_verified_hcmc_pitches_catalog():
+ * Danh mục chuẩn 10 Cụm Sân Bóng thực tế tại TP.HCM kèm tọa độ GPS chuẩn xác (7 chữ số thập phân),
+ * địa chỉ chuẩn và Google Maps Place ID thực tế.
+ */
+function get_verified_hcmc_pitches_catalog() {
+    return [
+        1 => [
+            'id'           => 1,
+            'name'         => 'Sân Banh Chảo Lửa',
+            'type'         => '5',
+            'address'      => '30 - 38 Đ. Phan Thúc Duyện, Phường 4 (Tân Sơn Nhất), Quận Tân Bình, TP.HCM',
+            'district'     => 'Tân Bình',
+            'lat'          => 10.8058333,
+            'lng'          => 106.6583333,
+            'place_id'     => 'ChIJB5tp0zspdTERarJg-FmXD5Q',
+            'price'        => 180000,
+            'normal_price' => 180000,
+            'peak_price'   => 320000,
+            'sub_pitches'  => '8 sân 5 người, 4 sân 7 người liên hoàn (Ghép thành sân 11 người tiêu chuẩn)',
+            'phone'        => '0777 700 000',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.8058333,106.6583333&destination_place_id=ChIJB5tp0zspdTERarJg-FmXD5Q',
+            'desc'         => 'Một trong những "thánh địa" bóng đá phong trào lớn và sôi động nhất thành phố ngay sát Công viên Hoàng Văn Thụ & Sân bay Tân Sơn Nhất. Cụm sân quy mô lớn gồm nhiều sân 5 và 7 người liên hoàn, ghép thành sân 11 người tiêu chuẩn.',
+            'image'        => 'assets/images/field-1.jpg',
+            'rating'       => 4.3,
+            'reviews'      => 3601
+        ],
+        2 => [
+            'id'           => 2,
+            'name'         => 'Sân Bóng Đá K34',
+            'type'         => '7',
+            'address'      => 'A75/6E/65 Đ. Bạch Đằng, Phường 2 (Tân Sơn Hòa), Quận Tân Bình, TP.HCM',
+            'district'     => 'Tân Bình',
+            'lat'          => 10.8141200,
+            'lng'          => 106.6698500,
+            'place_id'     => 'ChIJNc6f9x4pdTERXLf34VRBOdw',
+            'price'        => 160000,
+            'normal_price' => 160000,
+            'peak_price'   => 300000,
+            'sub_pitches'  => 'Hệ thống 4 sân 5 người & 2 sân 7 người cỏ nhân tạo có mái che thoáng mát',
+            'phone'        => '0908 787 798',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.8141200,106.6698500&destination_place_id=ChIJNc6f9x4pdTERXLf34VRBOdw',
+            'desc'         => 'Nổi tiếng với hệ thống sân cỏ nhân tạo có mái che cực kỳ thoáng mát tại khu Bạch Đằng Tân Sơn Nhất, giúp các đội bóng thi đấu bất chấp thời tiết nắng mưa.',
+            'image'        => 'assets/images/field-2.jpg',
+            'rating'       => 4.2,
+            'reviews'      => 850
+        ],
+        3 => [
+            'id'           => 3,
+            'name'         => 'Sân vận động Gia Định',
+            'type'         => '11',
+            'address'      => '2A Phan Chu Trinh, Phường 12, Quận Bình Thạnh, TP.HCM',
+            'district'     => 'Bình Thạnh',
+            'lat'          => 10.8145300,
+            'lng'          => 106.7023700,
+            'place_id'     => 'ChIJx6YjBscpdTERlrJ806lpemA',
+            'price'        => 170000,
+            'normal_price' => 170000,
+            'peak_price'   => 310000,
+            'sub_pitches'  => 'Sân 11 người chuẩn thi đấu + Cụm 6 sân 5 - 7 người vệ tinh xung quanh (Mở cửa: 05:30 – 22:00)',
+            'phone'        => '028 3841 2635',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.8145300,106.7023700&destination_place_id=ChIJx6YjBscpdTERlrJ806lpemA',
+            'desc'         => 'Tổ hợp sân vận động lớn của Trung tâm TDTT Quận Bình Thạnh (2A Phan Chu Trinh), có mặt sân 11 người chuẩn thi đấu quốc gia, khán đài mái che hơn 1.000 chỗ ngồi và cụm sân 5 - 7 người vệ tinh.',
+            'image'        => 'assets/images/field-3.jpg',
+            'rating'       => 4.3,
+            'reviews'      => 1240
+        ],
+        4 => [
+            'id'           => 4,
+            'name'         => 'Sân bóng đá mini Nhà Tập Luyện Phú Thọ',
+            'type'         => '5',
+            'address'      => '219 Đ. Lý Thường Kiệt (Cổng số 2 Lữ Gia), Phường 15, Quận 11, TP.HCM',
+            'district'     => 'Quận 11',
+            'lat'          => 10.7686111,
+            'lng'          => 106.6575000,
+            'place_id'     => 'ChIJ1_6sKeoudTERto25faHCNlg',
+            'price'        => 150000,
+            'normal_price' => 150000,
+            'peak_price'   => 280000,
+            'sub_pitches'  => 'Khu liên hợp thể thao 6 sân 5 người, 2 sân 7 người đạt chuẩn (Mở cửa: 05:00 – 23:00)',
+            'phone'        => '028 3865 0930',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.7686111,106.6575000&destination_place_id=ChIJ1_6sKeoudTERto25faHCNlg',
+            'desc'         => 'Nằm trong khu liên hợp thể thao Nhà Tập Luyện & Nhà Thi Đấu Phú Thọ (giáp hai mặt đường Lý Thường Kiệt và Lữ Gia), mặt cỏ đạt chuẩn, dễ dàng kết nối giao thông từ Quận 10, Quận 11, Tân Bình.',
+            'image'        => 'assets/images/field-1.jpg',
+            'rating'       => 4.4,
+            'reviews'      => 960
+        ],
+        5 => [
+            'id'           => 5,
+            'name'         => 'Sân banh Tao Đàn',
+            'type'         => '7',
+            'address'      => '01 Huyền Trân Công Chúa (55C Nguyễn Thị Minh Khai), Phường Bến Thành, Quận 1, TP.HCM',
+            'district'     => 'Quận 1',
+            'lat'          => 10.7744400,
+            'lng'          => 106.6925000,
+            'place_id'     => 'ChIJm5DtejkvdTERIsG8l9bQ6ic',
+            'price'        => 200000,
+            'normal_price' => 200000,
+            'peak_price'   => 360000,
+            'sub_pitches'  => 'Mặt sân 11 người chia tách linh hoạt thành 3 sân 7 người và 6 sân 5 người',
+            'phone'        => '028 3822 4158',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.7744400,106.6925000&destination_place_id=ChIJm5DtejkvdTERIsG8l9bQ6ic',
+            'desc'         => 'Nằm ngay "lá phổi xanh" Công viên Văn hóa Tao Đàn trung tâm Quận 1 (phía sau Dinh Độc Lập), bao quanh bởi cây cổ thụ mát mẻ, có mặt sân 11 người chia tách linh hoạt thành các sân 7 người và 5 người.',
+            'image'        => 'assets/images/field-2.jpg',
+            'rating'       => 4.2,
+            'reviews'      => 1450
+        ],
+        6 => [
+            'id'           => 6,
+            'name'         => 'Sân vận động Trường Đại học Tôn Đức Thắng',
+            'type'         => '11',
+            'address'      => '19 Nguyễn Hữu Thọ (Cổng 7 Đường D6), Phường Tân Phong, Quận 7, TP.HCM',
+            'district'     => 'Quận 7',
+            'lat'          => 10.7326800,
+            'lng'          => 106.6997500,
+            'place_id'     => 'ChIJz0OOpr0vdTERrYFEd4OJMaM',
+            'price'        => 190000,
+            'normal_price' => 190000,
+            'peak_price'   => 350000,
+            'sub_pitches'  => 'Sân vận động chuẩn FIFA 2 sao (Sân 11 người + Cụm sân 5 - 7 người & Khán đài lớn)',
+            'phone'        => '028 3775 5035',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.7326800,106.6997500&destination_place_id=ChIJz0OOpr0vdTERrYFEd4OJMaM',
+            'desc'         => 'Sân vận động đạt chuẩn FIFA 2 sao nằm trong khuôn viên chính Đại học Tôn Đức Thắng (19 Nguyễn Hữu Thọ - Đường D6, Quận 7) với mặt cỏ cực đẹp, khán đài lớn và đường chạy điền kinh bao quanh.',
+            'image'        => 'assets/images/field-3.jpg',
+            'rating'       => 4.7,
+            'reviews'      => 2150
+        ],
+        7 => [
+            'id'           => 7,
+            'name'         => 'Sân bóng Phú Lợi - Phạm Văn Đồng',
+            'type'         => '7',
+            'address'      => '420 Phạm Văn Đồng (579 Kha Vạn Cân, KP8), Phường Hiệp Bình Chánh, TP. Thủ Đức, TP.HCM',
+            'district'     => 'TP. Thủ Đức',
+            'lat'          => 10.8286400,
+            'lng'          => 106.7219500,
+            'place_id'     => 'ChIJfyYy40gndTERwGnfVlIS3ak',
+            'price'        => 150000,
+            'normal_price' => 150000,
+            'peak_price'   => 270000,
+            'sub_pitches'  => '6 sân 5 người, 2 sân 7 người (Ghép được 1 sân 11 người)',
+            'phone'        => '0933 088 088',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.8286400,106.7219500&destination_place_id=ChIJfyYy40gndTERwGnfVlIS3ak',
+            'desc'         => 'Cụm sân lớn trục đại lộ Phạm Văn Đồng – Hiệp Bình Chánh (TP. Thủ Đức), mặt cỏ mới thay êm ái, thoát nước nhanh, bãi đỗ ô tô & xe máy rộng rãi.',
+            'image'        => 'assets/images/field-1.jpg',
+            'rating'       => 4.6,
+            'reviews'      => 420
+        ],
+        8 => [
+            'id'           => 8,
+            'name'         => 'Sân bóng Bình Quới - Thanh Đa',
+            'type'         => '5',
+            'address'      => '426 Bình Quới, Cư xá Thanh Đa, Phường 28, Quận Bình Thạnh, TP.HCM',
+            'district'     => 'Bình Thạnh',
+            'lat'          => 10.8189200,
+            'lng'          => 106.7314500,
+            'place_id'     => 'ChIJzUwJAi4mdTERzfFbs4Gu9f4',
+            'price'        => 130000,
+            'normal_price' => 130000,
+            'peak_price'   => 240000,
+            'sub_pitches'  => '6 sân 5 người, 3 sân 7 người (Ghép được 1 sân 11 người ven sông)',
+            'phone'        => '0903 006 630',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.8189200,106.7314500&destination_place_id=ChIJzUwJAi4mdTERzfFbs4Gu9f4',
+            'desc'         => 'Cụm sân ven sông mát mẻ tại bán đảo Bình Quới – Thanh Đa (Quận Bình Thạnh), không gian thoáng đãng, giá thuê cực kỳ hợp lý cho sinh viên và đội bóng văn phòng.',
+            'image'        => 'assets/images/field-2.jpg',
+            'rating'       => 4.5,
+            'reviews'      => 310
+        ],
+        9 => [
+            'id'           => 9,
+            'name'         => 'Sân bóng Vạn Phúc City (TP. Thủ Đức)',
+            'type'         => '7',
+            'address'      => 'Đường Nguyễn Thị Nhung, Khu đô thị Vạn Phúc, Quốc lộ 13, Phường Hiệp Bình Phước, TP. Thủ Đức, TP.HCM',
+            'district'     => 'TP. Thủ Đức',
+            'lat'          => 10.8408500,
+            'lng'          => 106.7114200,
+            'place_id'     => 'ChIJzVASg28odTERxeoRPd6pbBQ',
+            'price'        => 160000,
+            'normal_price' => 160000,
+            'peak_price'   => 290000,
+            'sub_pitches'  => '6 sân 5 người, 3 sân 7 người, 1 sân 11 người ven sông Sài Gòn',
+            'phone'        => '0979 120 174',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.8408500,106.7114200&destination_place_id=ChIJzVASg28odTERxeoRPd6pbBQ',
+            'desc'         => 'Tổ hợp sân bóng hiện đại bậc nhất TP. Thủ Đức nằm trên trục Nguyễn Thị Nhung trong KĐT Vạn Phúc City, hệ thống đèn LED chống lóa và phòng tắm nước nóng.',
+            'image'        => 'assets/images/field-3.jpg',
+            'rating'       => 4.6,
+            'reviews'      => 520
+        ],
+        10 => [
+            'id'           => 10,
+            'name'         => 'Sân bóng Đạt Đức (Thống Nhất - Gò Vấp)',
+            'type'         => '5',
+            'address'      => '5A Đ. Nguyễn Văn Lượng, Phường 16, Quận Gò Vấp, TP.HCM',
+            'district'     => 'Gò Vấp',
+            'lat'          => 10.8393600,
+            'lng'          => 106.6684000,
+            'place_id'     => 'ChIJE0aVQakpdTERDxOOnhDUprY',
+            'price'        => 140000,
+            'normal_price' => 140000,
+            'peak_price'   => 250000,
+            'sub_pitches'  => '8 sân 5 người, 4 sân 7 người (Ghép được 2 sân 11 người chuẩn thi đấu)',
+            'phone'        => '0919 516 516',
+            'gmap'         => 'https://www.google.com/maps/dir/?api=1&destination=10.8393600,106.6684000&destination_place_id=ChIJE0aVQakpdTERDxOOnhDUprY',
+            'desc'         => 'Cụm Sân vận động Đạt Đức trung tâm Quận Gò Vấp (5A Nguyễn Văn Lượng, cạnh Trung tâm TDTT Gò Vấp & đối diện Lotte Mart), mặt cỏ chuẩn thi đấu, đường biên rộng 3m.',
+            'image'        => 'assets/images/field-1.jpg',
+            'rating'       => 4.5,
+            'reviews'      => 640
+        ],
+    ];
+}
+
 function project_base() {
     static $base = null;
 
@@ -203,191 +413,10 @@ function ensure_upgraded_schema() {
             ");
         }
 
-        // 4.9. Đồng bộ dữ liệu 6 Điểm Dừng Sân Bóng Nổi Tiếng + 4 Cụm Sân Thực Tế tại TP.HCM (v2)
-        $hasRealSeed = (string)$pdo->query("SELECT setting_value FROM system_settings WHERE setting_key='real_pitches_seeded_v2'")->fetchColumn();
+        // 4.9. Đồng bộ dữ liệu chuẩn vị trí GPS, địa chỉ & Place ID của 10 Cụm Sân Bóng Thực Tế tại TP.HCM (v4)
+        $hasRealSeed = (string)$pdo->query("SELECT setting_value FROM system_settings WHERE setting_key='real_pitches_seeded_v4'")->fetchColumn();
         if ($hasRealSeed !== '1') {
-            $realPitches = [
-                1 => [
-                    'name' => 'Sân Banh Chảo Lửa',
-                    'type' => '5',
-                    'address' => '38 Đ. Phan Thúc Duyện, Tân Sơn Nhất, Quận Tân Bình, TP.HCM',
-                    'district' => 'Tân Bình',
-                    'lat' => 10.8016800,
-                    'lng' => 106.6626100,
-                    'price' => 180000,
-                    'normal_price' => 180000,
-                    'peak_price' => 320000,
-                    'sub_pitches' => 'Nhiều sân 5 người và 7 người liên hoàn (Ghép thành sân 11 người tiêu chuẩn)',
-                    'phone' => '0777 700 000',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.8016800,106.6626100',
-                    'desc' => 'Một trong những "thánh địa" bóng đá phong trào lớn và sôi động nhất thành phố. Cụm sân có quy mô lớn gồm nhiều sân 5 người và 7 người liên hoàn, có thể ghép thành sân 11 người tiêu chuẩn.',
-                    'image' => 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=900',
-                    'rating' => 4.3,
-                    'reviews' => 3600
-                ],
-                2 => [
-                    'name' => 'Sân Bóng Đá K34',
-                    'type' => '7',
-                    'address' => 'Bạch Đằng, Tân Sơn Hòa, Quận Tân Bình, TP.HCM',
-                    'district' => 'Tân Bình',
-                    'lat' => 10.8132500,
-                    'lng' => 106.6694200,
-                    'price' => 160000,
-                    'normal_price' => 160000,
-                    'peak_price' => 300000,
-                    'sub_pitches' => 'Hệ thống sân cỏ nhân tạo 5 - 7 người có mái che thoáng mát',
-                    'phone' => '0908 787 798',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.8132500,106.6694200',
-                    'desc' => 'Nổi tiếng với hệ thống sân cỏ nhân tạo có mái che cực kỳ thoáng mát, giúp các đội bóng thi đấu bất chấp thời tiết nắng mưa.',
-                    'image' => 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=900',
-                    'rating' => 4.2,
-                    'reviews' => 850
-                ],
-                3 => [
-                    'name' => 'Sân vận động Gia Định',
-                    'type' => '11',
-                    'address' => '2A Phan Chu Trinh, Phường 12, Quận Bình Thạnh, TP.HCM',
-                    'district' => 'Bình Thạnh',
-                    'lat' => 10.8087500,
-                    'lng' => 106.6961500,
-                    'price' => 170000,
-                    'normal_price' => 170000,
-                    'peak_price' => 310000,
-                    'sub_pitches' => 'Sân 11 người chuẩn thi đấu + Cụm các sân 5 - 7 người vệ tinh xung quanh (Mở cửa: 05:30 – 22:00)',
-                    'phone' => '028 3841 2635',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.8087500,106.6961500',
-                    'desc' => 'Tổ hợp sân vận động lớn có cả mặt sân 11 người chuẩn thi đấu và cụm các sân 5 - 7 người vệ tinh xung quanh, khuôn viên rộng rãi. Giờ mở cửa: 05:30 – 22:00.',
-                    'image' => 'https://images.unsplash.com/photo-1518604666860-9ed391f76460?w=900',
-                    'rating' => 4.3,
-                    'reviews' => 1240
-                ],
-                4 => [
-                    'name' => 'Sân bóng đá mini Nhà Tập Luyện Phú Thọ',
-                    'type' => '5',
-                    'address' => '219 Đ. Lý Thường Kiệt, Phường 15, Quận 11, TP.HCM',
-                    'district' => 'Quận 11',
-                    'lat' => 10.7694500,
-                    'lng' => 106.6579200,
-                    'price' => 150000,
-                    'normal_price' => 150000,
-                    'peak_price' => 280000,
-                    'sub_pitches' => 'Khu liên hợp thể thao cụm sân 5 - 7 người đạt chuẩn (Mở cửa: 05:00 – 23:00)',
-                    'phone' => '028 3865 0930',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.7694500,106.6579200',
-                    'desc' => 'Nằm trong khu liên hợp thể thao Sân vận động Phú Thọ, mặt cỏ đạt chuẩn, dễ dàng kết nối giao thông từ các khu vực trung tâm. Giờ mở cửa: 05:00 – 23:00.',
-                    'image' => 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=900',
-                    'rating' => 4.4,
-                    'reviews' => 960
-                ],
-                5 => [
-                    'name' => 'Sân banh Tao Đàn',
-                    'type' => '7',
-                    'address' => 'Huyền Trân Công Chúa, Phường Bến Thành, Quận 1, TP.HCM',
-                    'district' => 'Quận 1',
-                    'lat' => 10.7751200,
-                    'lng' => 106.6928500,
-                    'price' => 200000,
-                    'normal_price' => 200000,
-                    'peak_price' => 360000,
-                    'sub_pitches' => 'Mặt sân 11 người chia tách linh hoạt thành các sân 7 người và 5 người',
-                    'phone' => '028 3822 4158',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.7751200,106.6928500',
-                    'desc' => 'Nằm ngay "lá phổi xanh" trung tâm thành phố, bao quanh bởi cây cổ thụ mát mẻ, có mặt sân 11 người chia tách linh hoạt thành các sân 7 người và 5 người.',
-                    'image' => 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=900',
-                    'rating' => 4.2,
-                    'reviews' => 1450
-                ],
-                6 => [
-                    'name' => 'Sân vận động Trường Đại học Tôn Đức Thắng',
-                    'type' => '11',
-                    'address' => 'Đường D6 (19 Nguyễn Hữu Thọ), Phường Tân Hưng, Quận 7, TP.HCM',
-                    'district' => 'Quận 7',
-                    'lat' => 10.7326500,
-                    'lng' => 106.6997800,
-                    'price' => 190000,
-                    'normal_price' => 190000,
-                    'peak_price' => 350000,
-                    'sub_pitches' => 'Sân vận động chuẩn FIFA 2 sao (Sân 11 người + Cụm sân 5 - 7 người & Khán đài lớn)',
-                    'phone' => '028 3775 5035',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.7326500,106.6997800',
-                    'desc' => 'Sân vận động đạt chuẩn FIFA 2 sao với mặt cỏ cực đẹp, khán đài lớn và đường chạy điền kinh bao quanh, thường xuyên tổ chức các giải sinh viên và phong trào lớn.',
-                    'image' => 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=900',
-                    'rating' => 4.7,
-                    'reviews' => 2150
-                ],
-                7 => [
-                    'name' => 'Sân bóng Phú Lợi - Phạm Văn Đồng',
-                    'type' => '7',
-                    'address' => '88 Phạm Văn Đồng, Phường Hiệp Bình Chánh, TP. Thủ Đức, TP.HCM',
-                    'district' => 'TP. Thủ Đức',
-                    'lat' => 10.8294000,
-                    'lng' => 106.7231000,
-                    'price' => 150000,
-                    'normal_price' => 150000,
-                    'peak_price' => 270000,
-                    'sub_pitches' => '6 sân 5 người, 2 sân 7 người (Ghép được 1 sân 11 người)',
-                    'phone' => '0933 088 088',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.8294000,106.7231000',
-                    'desc' => 'Cụm sân lớn mặt tiền đại lộ Phạm Văn Đồng, mặt cỏ mới thay êm ái, thoát nước nhanh, bãi đỗ ô tô & xe máy rộng rãi.',
-                    'image' => 'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=900',
-                    'rating' => 4.6,
-                    'reviews' => 420
-                ],
-                8 => [
-                    'name' => 'Sân bóng Bình Quới - Thanh Đa',
-                    'type' => '5',
-                    'address' => '406 Bình Quới, Phường 28, Quận Bình Thạnh, TP.HCM',
-                    'district' => 'Bình Thạnh',
-                    'lat' => 10.8226000,
-                    'lng' => 106.7318000,
-                    'price' => 130000,
-                    'normal_price' => 130000,
-                    'peak_price' => 240000,
-                    'sub_pitches' => '6 sân 5 người, 3 sân 7 người (Ghép được 1 sân 11 người)',
-                    'phone' => '0938 406 406',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.8226000,106.7318000',
-                    'desc' => 'Cụm sân ven sông mát mẻ tại bán đảo Thanh Đa - Bình Thạnh, giá thuê cực kỳ hợp lý cho sinh viên và đội bóng văn phòng.',
-                    'image' => 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=900',
-                    'rating' => 4.5,
-                    'reviews' => 310
-                ],
-                9 => [
-                    'name' => 'Sân bóng Vạn Phúc City (TP. Thủ Đức)',
-                    'type' => '7',
-                    'address' => 'Khu đô thị Vạn Phúc, Quốc lộ 13, Phường Hiệp Bình Phước, TP. Thủ Đức, TP.HCM',
-                    'district' => 'TP. Thủ Đức',
-                    'lat' => 10.8408500,
-                    'lng' => 106.7114200,
-                    'price' => 160000,
-                    'normal_price' => 160000,
-                    'peak_price' => 290000,
-                    'sub_pitches' => '6 sân 5 người, 3 sân 7 người, 1 sân 11 người ven sông',
-                    'phone' => '0902 713 713',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.8408500,106.7114200',
-                    'desc' => 'Tổ hợp sân bóng hiện đại bậc nhất TP. Thủ Đức nằm trong KĐT Vạn Phúc, hệ thống đèn LED chống lóa và phòng tắm nước nóng.',
-                    'image' => 'https://images.unsplash.com/photo-1518604666860-9ed391f76460?w=900',
-                    'rating' => 4.6,
-                    'reviews' => 520
-                ],
-                10 => [
-                    'name' => 'Sân bóng Đạt Đức (Thống Nhất - Gò Vấp)',
-                    'type' => '5',
-                    'address' => '5A Nguyễn Văn Lượng, Phường 16, Quận Gò Vấp, TP.HCM',
-                    'district' => 'Gò Vấp',
-                    'lat' => 10.8382000,
-                    'lng' => 106.6665000,
-                    'price' => 140000,
-                    'normal_price' => 140000,
-                    'peak_price' => 250000,
-                    'sub_pitches' => '8 sân 5 người, 4 sân 7 người (Ghép được 2 sân 11 người)',
-                    'phone' => '0919 516 516',
-                    'gmap' => 'https://www.google.com/maps/dir/?api=1&destination=10.8382000,106.6665000',
-                    'desc' => 'Cụm sân trung tâm Gò Vấp đối diện Lotte Mart Nguyễn Văn Lượng, mặt cỏ chuẩn thi đấu, dịch vụ trọng tài & nước uống chu đáo.',
-                    'image' => 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=900',
-                    'rating' => 4.5,
-                    'reviews' => 640
-                ],
-            ];
+            $realPitches = get_verified_hcmc_pitches_catalog();
 
             $stmtCheckId = $pdo->prepare("SELECT id FROM fields WHERE id = ?");
             $stmtUpd = $pdo->prepare("
@@ -423,7 +452,7 @@ function ensure_upgraded_schema() {
                 }
             }
 
-            $pdo->prepare("REPLACE INTO system_settings(setting_key, setting_value) VALUES('real_pitches_seeded_v2', '1')")->execute();
+            $pdo->prepare("REPLACE INTO system_settings(setting_key, setting_value) VALUES('real_pitches_seeded_v4', '1')")->execute();
         }
 
         // 4.10. NÂNG CẤP HỆ THỐNG TÀI KHOẢN ĐA VAI TRÒ (CUSTOMER - PITCH_OWNER - ADMIN),
@@ -587,8 +616,8 @@ function ensure_upgraded_schema() {
                     'venue_name'    => 'Sân Banh Chảo Lửa',
                     'venue_address' => '38 Đ. Phan Thúc Duyện, Tân Sơn Nhất, Quận Tân Bình, TP.HCM',
                     'district'      => 'Tân Bình',
-                    'lat'           => 10.8016800,
-                    'lng'           => 106.6626100,
+                    'lat'           => 10.8058333,
+                    'lng'           => 106.6583333,
                     'pitch_summary' => '6 sân 5 người, 2 sân 7 người (Ghép thành 1 sân 11 người)',
                     'cnt5'          => 6,
                     'cnt7'          => 2,
@@ -616,8 +645,8 @@ function ensure_upgraded_schema() {
                     'venue_name'    => 'Sân Bóng Đá K34',
                     'venue_address' => 'Bạch Đằng, Tân Sơn Hòa, Quận Tân Bình, TP.HCM',
                     'district'      => 'Tân Bình',
-                    'lat'           => 10.8132500,
-                    'lng'           => 106.6694200,
+                    'lat'           => 10.8141200,
+                    'lng'           => 106.6698500,
                     'pitch_summary' => '4 sân 5 người, 2 sân 7 người có mái che thoáng mát',
                     'cnt5'          => 4,
                     'cnt7'          => 2,
@@ -645,8 +674,8 @@ function ensure_upgraded_schema() {
                     'venue_name'    => 'Sân vận động Gia Định',
                     'venue_address' => '2A Phan Chu Trinh, Phường 12, Quận Bình Thạnh, TP.HCM',
                     'district'      => 'Bình Thạnh',
-                    'lat'           => 10.8087500,
-                    'lng'           => 106.6961500,
+                    'lat'           => 10.8145300,
+                    'lng'           => 106.7023700,
                     'pitch_summary' => '4 sân 5 người, 2 sân 7 người, 1 sân 11 người chuẩn thi đấu',
                     'cnt5'          => 4,
                     'cnt7'          => 2,
@@ -674,8 +703,8 @@ function ensure_upgraded_schema() {
                     'venue_name'    => 'Sân bóng đá mini Nhà Tập Luyện Phú Thọ',
                     'venue_address' => '219 Đ. Lý Thường Kiệt, Phường 15, Quận 11, TP.HCM',
                     'district'      => 'Quận 11',
-                    'lat'           => 10.7694500,
-                    'lng'           => 106.6579200,
+                    'lat'           => 10.7686111,
+                    'lng'           => 106.6575000,
                     'pitch_summary' => '5 sân 5 người, 2 sân 7 người liên hợp thể thao Phú Thọ',
                     'cnt5'          => 5,
                     'cnt7'          => 2,
@@ -703,8 +732,8 @@ function ensure_upgraded_schema() {
                     'venue_name'    => 'Sân banh Tao Đàn',
                     'venue_address' => 'Huyền Trân Công Chúa, Phường Bến Thành, Quận 1, TP.HCM',
                     'district'      => 'Quận 1',
-                    'lat'           => 10.7751200,
-                    'lng'           => 106.6928500,
+                    'lat'           => 10.7744400,
+                    'lng'           => 106.6925000,
                     'pitch_summary' => '4 sân 5 người, 2 sân 7 người, 1 sân 11 người trung tâm Quận 1',
                     'cnt5'          => 4,
                     'cnt7'          => 2,
@@ -732,8 +761,8 @@ function ensure_upgraded_schema() {
                     'venue_name'    => 'Sân vận động Trường Đại học Tôn Đức Thắng',
                     'venue_address' => 'Đường D6 (19 Nguyễn Hữu Thọ), Phường Tân Hưng, Quận 7, TP.HCM',
                     'district'      => 'Quận 7',
-                    'lat'           => 10.7326500,
-                    'lng'           => 106.6997800,
+                    'lat'           => 10.7326800,
+                    'lng'           => 106.6997500,
                     'pitch_summary' => 'Sân vận động chuẩn FIFA 2 sao (4 sân 5, 2 sân 7, 1 sân 11 người)',
                     'cnt5'          => 4,
                     'cnt7'          => 2,
@@ -904,6 +933,14 @@ function get_setting($key, $default = '') {
 /**
  * Hàm set_setting(): Lưu hoặc cập nhật một thông số cấu hình vào bảng system_settings.
  */
+/**
+ * Hàm get_platform_fee_percent(): Lấy tỷ lệ % phí sàn Admin chiết khấu từ doanh thu đặt sân (mặc định 10%).
+ */
+function get_platform_fee_percent(): int {
+    $val = (int)get_setting('platform_fee_percent', '10');
+    return max(1, min(50, $val ?: 10));
+}
+
 function set_setting($key, $val) {
     global $pdo;
     $stmt = $pdo->prepare("
@@ -976,7 +1013,7 @@ function require_login() {
 function require_admin() {
     $user = require_login();
 
-    if ($user['role'] !== 'admin') {
+    if (get_user_role_code($user) !== 'ADMIN') {
         http_response_code(403);
         header('Location: ' . project_base() . 'index.php');
         exit;

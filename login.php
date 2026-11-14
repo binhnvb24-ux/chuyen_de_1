@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user']      = $u;
 
         // 1.6. Điều hướng theo phân quyền: Admin vào Bảng điều khiển, Chủ sân vào Kênh Chủ Sân, Khách về Trang chủ
-        if ($u['role'] === 'admin') {
+        if (get_user_role_code($u) === 'ADMIN') {
             header('Location: admin/dashboard.php');
         } elseif (is_pitch_owner($u)) {
             header('Location: user/owner-dashboard.php');
@@ -147,12 +147,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <!-- 2.4. Liên kết chuyển sang trang Đăng ký hoặc quay về Trang chủ -->
       <div class="auth-links">
         Chưa có tài khoản? <a href="register.php"><b>Đăng ký miễn phí</b></a>
-      </div>
-
-      <!-- 2.5. Hộp gợi ý tài khoản mẫu phục vụ chấm đồ án / kiểm thử -->
-      <div class="demo-hint" style="background:#f0fdf4;border-color:#bbf7d0;color:#15803d;text-align:left;font-size:11.5px;padding:10px 12px;border-radius:10px;line-height:1.55">
-        <div>🔑 <b>Admin / Khách:</b> <code>admin</code> / <code>nguyenvana</code> (MK: <code>password</code>)</div>
-        <div style="margin-top:4px">🏟 <b>6 Chủ sân Đối tác:</b> <code>chusan_chaolua</code>, <code>chusan_k34</code>, <code>chusan_giadinh</code>, <code>chusan_phutho</code>, <code>chusan_taodan</code>, <code>chusan_tdtu</code> (MK: <code>123456</code> hoặc <code>password</code>)</div>
       </div>
     </form>
 

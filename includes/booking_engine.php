@@ -144,43 +144,12 @@ function init_advanced_booking_engine() {
 function seed_default_hierarchy_and_conflict_map() {
     global $pdo;
 
-    $allFields = $pdo->query("SELECT id, name, type FROM fields ORDER BY id ASC")->fetchAll();
-    $f11 = [];
-    $f7  = [];
-    $f5  = [];
-
+    $allFields = $pdo->query("SELECT id, name, type, pitch_code FROM fields ORDER BY id ASC")->fetchAll();
     foreach ($allFields as $f) {
-        if ($f['type'] === '11') {
-            $f11[] = $f['id'];
-        } elseif ($f['type'] === '7') {
-            $f7[] = $f['id'];
-        } else {
-            $f5[] = $f['id'];
+        if (empty($f['pitch_code'])) {
+            $defaultCode = $f['type'] . 'A';
+            $pdo->prepare("UPDATE fields SET pitch_code = ? WHERE id = ?")->execute([$defaultCode, $f['id']]);
         }
-    }
-
-    // Gán mã sân (pitch_code) và liên kết:
-    // - Các sân 7 người ghép lại thành Sân 11 người đầu tiên
-    // - Các sân 5 người ghép lại thành Sân 7 người đầu tiên
-    $root11 = $f11[0] ?? null;
-    if ($root11) {
-        $pdo->prepare("UPDATE fields SET pitch_code = '11A' WHERE id = ?")->execute([$root11]);
-    }
-
-    $letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-    foreach ($f7 as $idx => $id7) {
-        $code7 = '7' . ($letters[$idx] ?? ($idx + 1));
-        $pdo->prepare("UPDATE fields SET parent_id = ?, pitch_code = ? WHERE id = ?")
-            ->execute([$root11, $code7, $id7]);
-    }
-
-    $parent7 = $f7[0] ?? $root11;
-    foreach ($f5 as $idx => $id5) {
-        $code5 = '5' . ($letters[$idx] ?? ($idx + 1));
-        // 3 sân 5 đầu tiên ghép vào sân 7A, các sân 5 tiếp theo ghép vào sân 7B (nếu có)
-        $targetParent = ($idx < 3) ? ($f7[0] ?? $root11) : ($f7[1] ?? $parent7);
-        $pdo->prepare("UPDATE fields SET parent_id = ?, pitch_code = ? WHERE id = ?")
-            ->execute([$targetParent, $code5, $id5]);
     }
 
     rebuild_field_conflict_map();
@@ -765,9 +734,10 @@ function release_recurring_slot($user_id, $booking_id, $reason = 'Đội cố đ
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare("
-            SELECT b.*, f.name AS fname
+            SELECT b.*, f.name AS fname, p.status AS pay_status, p.amount AS pay_amount
             FROM bookings b
             INNER JOIN fields f ON f.id = b.field_id
+            LEFT JOIN payments p ON p.booking_id = b.id
             WHERE b.id = ?
               AND b.user_id = ?
               AND b.recurring_contract_id IS NOT NULL
@@ -809,6 +779,9 @@ function release_recurring_slot($user_id, $booking_id, $reason = 'Đội cố đ
         $stmtUpd->execute([$bk['id']]);
 
         // 3. Hoàn tiền / hủy thanh toán của buổi nghỉ đó
+        $wasPaid   = (($bk['pay_status'] ?? '') === 'paid');
+        $refundAmt = $wasPaid ? (float)($bk['pay_amount'] ?: $bk['total_price']) : 0.0;
+
         $pdo->prepare("
             UPDATE payments
             SET status = IF(status = 'paid', 'refunded', status)
@@ -816,9 +789,23 @@ function release_recurring_slot($user_id, $booking_id, $reason = 'Đội cố đ
         ")->execute([$bk['id']]);
 
         $dateFormatted = date('d/m/Y', strtotime($bk['booking_date']));
+        if ($refundAmt > 0 && function_exists('record_wallet_and_reputation')) {
+            record_wallet_and_reputation(
+                (int)$user_id,
+                'REFUND',
+                $refundAmt,
+                0,
+                0,
+                "Hoàn tiền buổi cố định báo nghỉ trước 24h ngày {$dateFormatted} — Đơn #{$bk['id']} ({$bk['fname']})",
+                (int)$bk['id']
+            );
+        }
+
         notify(
             $user_id,
-            "Đã báo nghỉ & xả sân buổi cố định ngày {$dateFormatted} ({$bk['fname']}). Các tuần tiếp theo trong hợp đồng vẫn giữ nguyên!"
+            "Đã báo nghỉ & xả sân buổi cố định ngày {$dateFormatted} ({$bk['fname']})." .
+            ($refundAmt > 0 ? " Đã ghi nhận hoàn trả " . money($refundAmt) . "." : "") .
+            " Các tuần tiếp theo trong hợp đồng vẫn giữ nguyên!"
         );
 
         $pdo->commit();

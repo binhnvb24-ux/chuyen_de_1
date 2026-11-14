@@ -35,11 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $a  = $_POST['action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
 
-    // Lấy thông tin đơn đặt sân cần xử lý
+    // Lấy thông tin đơn đặt sân cần xử lý kèm trạng thái thanh toán
     $s = $pdo->prepare("
-        SELECT b.*, f.name
+        SELECT b.*, f.name, p.status AS pay_status, p.amount AS pay_amount
         FROM bookings b
         JOIN fields f ON f.id = b.field_id
+        LEFT JOIN payments p ON p.booking_id = b.id
         WHERE b.id = ?
     ");
     $s->execute([$id]);
@@ -65,25 +66,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_status = $map[$a][0];
         $msg_text   = $map[$a][1];
 
-        $pdo->prepare("UPDATE bookings SET status = ? WHERE id = ?")
-            ->execute([$new_status, $b['id']]);
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("UPDATE bookings SET status = ?, hold_expires_at = NULL WHERE id = ?")
+                ->execute([$new_status, $b['id']]);
 
-        // Nếu hoàn thành đơn -> đánh dấu thanh toán là đã thu tiền
-        if ($a === 'complete') {
-            $pdo->prepare("
-                UPDATE payments
-                SET status = 'paid', paid_at = COALESCE(paid_at, NOW())
-                WHERE booking_id = ?
-            ")->execute([$b['id']]);
-        }
+            // Nếu hoàn thành đơn -> đánh dấu thanh toán là đã thu tiền
+            if ($a === 'complete') {
+                $pdo->prepare("
+                    UPDATE payments
+                    SET status = 'paid', paid_at = COALESCE(paid_at, NOW())
+                    WHERE booking_id = ?
+                ")->execute([$b['id']]);
+            }
 
-        // Nếu hủy đơn đã thanh toán -> chuyển trạng thái thanh toán sang hoàn tiền (refunded)
-        if ($a === 'cancel') {
-            $pdo->prepare("
-                UPDATE payments
-                SET status = IF(status = 'paid', 'refunded', status)
-                WHERE booking_id = ?
-            ")->execute([$b['id']]);
+            // Nếu hủy đơn đã thanh toán -> chuyển trạng thái thanh toán sang hoàn tiền (refunded) & hoàn tiền vào Ví nội bộ
+            if ($a === 'cancel') {
+                $wasPaid   = (($b['pay_status'] ?? '') === 'paid');
+                $refundAmt = $wasPaid ? (float)($b['pay_amount'] ?: $b['total_price']) : 0.0;
+                $pdo->prepare("
+                    UPDATE payments
+                    SET status = IF(status = 'paid', 'refunded', status)
+                    WHERE booking_id = ?
+                ")->execute([$b['id']]);
+
+                if ($refundAmt > 0 && function_exists('record_wallet_and_reputation')) {
+                    record_wallet_and_reputation(
+                        (int)$b['user_id'],
+                        'REFUND',
+                        $refundAmt,
+                        0,
+                        0,
+                        "Admin hủy đơn #{$b['id']} ({$b['name']}) — Hoàn 100% tiền thanh toán vào Ví nội bộ",
+                        (int)$b['id'],
+                        (int)$adm['id']
+                    );
+                }
+            }
+            $pdo->commit();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
         }
 
         $formatted_date = date('d/m/Y', strtotime($b['booking_date']));
@@ -234,17 +258,6 @@ if (!empty($_GET['view'])) {
         $detailBk = $stD->fetch();
     }
 
-    // Lấy danh sách dịch vụ tiện ích đi kèm của đơn hàng này
-    if ($detailBk) {
-        $stS = $pdo->prepare("
-            SELECT bs.*, s.name AS sname
-            FROM booking_services bs
-            JOIN services s ON s.id = bs.service_id
-            WHERE bs.booking_id = ?
-        ");
-        $stS->execute([$detailBk['id']]);
-        $detailSvcs = $stS->fetchAll();
-    }
 }
 
 $page  = 'bookings';
@@ -318,36 +331,9 @@ include '../includes/admin_header.php';
         <?php endif; ?>
       </div>
 
-      <!-- Cột phải: Bảng kê các dịch vụ tiện ích đi kèm -->
-      <div>
-        <b style="display:block;margin-bottom:8px;font-size:13.5px">
-          🥤 Dịch vụ tiện ích đi kèm trong đơn:
-        </b>
-
-        <?php if (!$detailSvcs): ?>
-          <small>Khách không đặt thêm dịch vụ đi kèm.</small>
-        <?php else: ?>
-          <div class="tw">
-            <table>
-              <tr>
-                <th>Dịch vụ</th>
-                <th>SL</th>
-                <th>Đơn giá</th>
-                <th>Thành tiền</th>
-              </tr>
-              <?php foreach ($detailSvcs as $ds): ?>
-                <tr>
-                  <td><?=e($ds['sname'])?></td>
-                  <td>x<?=$ds['quantity']?></td>
-                  <td><?=money($ds['price'])?></td>
-                  <td><b><?=money($ds['price'] * $ds['quantity'])?></b></td>
-                </tr>
-              <?php endforeach; ?>
-            </table>
-          </div>
-        <?php endif; ?>
-
-        <div style="text-align:right;margin-top:10px;font-size:16px">
+      <!-- Cột phải: Tổng kết thanh toán của đơn -->
+      <div style="display:flex;flex-direction:column;justify-content:center">
+        <div style="text-align:right;font-size:16px">
           Tổng thanh toán đơn:
           <b style="color:#10b981;font-size:20px"><?=money($detailBk['total_price'])?></b>
         </div>

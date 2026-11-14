@@ -25,60 +25,14 @@ if (!$bk) {
   exit;
 }
 
-// Lấy danh sách dịch vụ tiện ích đi kèm của đơn đặt sân
-$svcStmt = $pdo->prepare("SELECT bs.*, s.name FROM booking_services bs JOIN services s ON s.id=bs.service_id WHERE bs.booking_id=?");
-$svcStmt->execute([$bid]);
-$bk_services = $svcStmt->fetchAll();
-
 // 2. Xử lý các thao tác trên Cổng Thanh Toán Demo (Đổi phương thức, Giả lập Thành công / Thất bại)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_check();
   $act = $_POST['action'] ?? '';
 
   if ($act === 'change_method' && $bk['pay_status'] !== 'paid') {
-    $newMethod = in_array($_POST['method'] ?? '', ['wallet','bank','momo','vnpay','cash']) ? $_POST['method'] : 'bank';
+    $newMethod = in_array($_POST['method'] ?? '', ['bank','momo','vnpay','cash']) ? $_POST['method'] : 'bank';
     $pdo->prepare("UPDATE payments SET method=? WHERE booking_id=?")->execute([$newMethod, $bid]);
-    header("Location: payment-demo.php?booking_id=$bid");
-    exit;
-  }
-
-  if ($act === 'pay_with_wallet' && $bk['pay_status'] !== 'paid') {
-    $walletBal = (float)($u['wallet_balance'] ?? 0);
-    $payAmt    = (float)$bk['total_price'];
-    if ($walletBal < $payAmt) {
-      flash('err', 'Số dư Ví nội bộ (' . money($walletBal) . ') không đủ để thanh toán ' . money($payAmt) . '. Vui lòng nạp thêm hoặc chọn VietQR!');
-      header("Location: payment-demo.php?booking_id=$bid");
-      exit;
-    }
-
-    $txn = 'WALLET' . date('ymdHis') . rand(100, 999);
-    $pdo->beginTransaction();
-    try {
-      $pdo->prepare("UPDATE payments SET method='wallet', status='paid', transaction_code=?, paid_at=NOW() WHERE booking_id=?")
-          ->execute([$txn, $bid]);
-      $pdo->prepare("UPDATE bookings SET status='confirmed', hold_expires_at=NULL WHERE id=?")
-          ->execute([$bid]);
-
-      $loyaltyBonus = max(10, (int)round($payAmt / 10000));
-      record_wallet_and_reputation(
-        (int)$u['id'],
-        'PAYMENT',
-        -$payAmt,
-        5,
-        $loyaltyBonus,
-        "Thanh toán đơn đặt sân #{$bid} ({$bk['fname']}) bằng Ví nội bộ — Cộng +5 Điểm Uy Tín",
-        $bid
-      );
-
-      notify($u['id'], "💰 Đã thanh toán bằng Ví nội bộ đơn #$bid ({$bk['fname']}). Bạn được cộng +5 Điểm Uy Tín!");
-      $pdo->commit();
-      flash('ok', "🎉 Đã thanh toán đơn #$bid bằng Ví nội bộ thành công! Bạn được cộng +5 Điểm Uy Tín & nhận Vé QR ngay.");
-    } catch (Exception $e) {
-      if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-      }
-      flash('err', 'Lỗi thanh toán Ví: ' . $e->getMessage());
-    }
     header("Location: payment-demo.php?booking_id=$bid");
     exit;
   }
@@ -89,36 +43,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newBkStatus = ($autoConfirm && $bk['status'] === 'pending') ? 'confirmed' : $bk['status'];
 
     $pdo->beginTransaction();
-    // Cập nhật thanh toán và xóa thời hạn giữ chỗ tạm thời (hold_expires_at = NULL)
-    $pdo->prepare("UPDATE payments SET status='paid', transaction_code=?, paid_at=NOW() WHERE booking_id=?")
-        ->execute([$txn, $bid]);
-    $pdo->prepare("UPDATE bookings SET status=?, hold_expires_at=NULL WHERE id=?")
-        ->execute([$newBkStatus, $bid]);
+    try {
+      // Cập nhật thanh toán và xóa thời hạn giữ chỗ tạm thời (hold_expires_at = NULL)
+      $pdo->prepare("UPDATE payments SET status='paid', transaction_code=?, paid_at=NOW() WHERE booking_id=?")
+          ->execute([$txn, $bid]);
+      $pdo->prepare("UPDATE bookings SET status=?, hold_expires_at=NULL WHERE id=?")
+          ->execute([$newBkStatus, $bid]);
 
-    // Nếu đơn này thuộc Hợp đồng lịch cố định hàng tuần, xác nhận luôn các buổi trong hợp đồng
-    if (!empty($bk['recurring_contract_id'])) {
-      $pdo->prepare("UPDATE bookings SET status='confirmed', hold_expires_at=NULL WHERE recurring_contract_id=? AND status='pending'")
-          ->execute([$bk['recurring_contract_id']]);
-      $pdo->prepare("UPDATE payments p INNER JOIN bookings b ON b.id=p.booking_id SET p.status='paid', p.transaction_code=?, p.paid_at=NOW() WHERE b.recurring_contract_id=?")
-          ->execute([$txn, $bk['recurring_contract_id']]);
+      // Nếu đơn này thuộc Hợp đồng lịch cố định hàng tuần, xác nhận luôn các buổi trong hợp đồng
+      if (!empty($bk['recurring_contract_id'])) {
+        $pdo->prepare("UPDATE bookings SET status='confirmed', hold_expires_at=NULL WHERE recurring_contract_id=? AND status='pending'")
+            ->execute([$bk['recurring_contract_id']]);
+        $pdo->prepare("UPDATE payments p INNER JOIN bookings b ON b.id=p.booking_id SET p.status='paid', p.transaction_code=?, p.paid_at=NOW() WHERE b.recurring_contract_id=?")
+            ->execute([$txn, $bk['recurring_contract_id']]);
+      }
+
+      // Cộng +5 Điểm Uy Tín và Điểm tích lũy khi khách hàng hoàn tất thanh toán đúng hạn
+      $loyaltyBonus = max(10, (int)round(((float)$bk['total_price']) / 10000));
+      record_wallet_and_reputation(
+        (int)$u['id'],
+        'REPUTATION',
+        0,
+        5,
+        $loyaltyBonus,
+        "Hoàn tất thanh toán đúng hạn đơn #{$bid} ({$bk['fname']}) — Cộng +5 Điểm Uy Tín",
+        $bid
+      );
+
+      notify($u['id'], "Thanh toán Demo thành công đơn #$bid ({$bk['fname']}). Mã GD: $txn. Bạn được cộng +5 Điểm Uy Tín!");
+      $pdo->commit();
+
+      flash('ok', "🎉 Thanh toán thành công đơn #$bid! Mã giao dịch: $txn. Bạn được cộng +5 Điểm Uy Tín & phát hành Vé Đặt Sân Điện Tử QR.");
+    } catch (Exception $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      flash('err', 'Lỗi xử lý thanh toán Demo: ' . $e->getMessage());
     }
-
-    // Cộng +5 Điểm Uy Tín và Điểm tích lũy khi khách hàng hoàn tất thanh toán đúng hạn
-    $loyaltyBonus = max(10, (int)round(((float)$bk['total_price']) / 10000));
-    record_wallet_and_reputation(
-      (int)$u['id'],
-      'REPUTATION',
-      0,
-      5,
-      $loyaltyBonus,
-      "Hoàn tất thanh toán đúng hạn đơn #{$bid} ({$bk['fname']}) — Cộng +5 Điểm Uy Tín",
-      $bid
-    );
-
-    notify($u['id'], "Thanh toán Demo thành công đơn #$bid ({$bk['fname']}). Mã GD: $txn. Bạn được cộng +5 Điểm Uy Tín!");
-    $pdo->commit();
-
-    flash('ok', "🎉 Thanh toán thành công đơn #$bid! Mã giao dịch: $txn. Bạn được cộng +5 Điểm Uy Tín & phát hành Vé Đặt Sân Điện Tử QR.");
     header("Location: payment-demo.php?booking_id=$bid");
     exit;
   }
@@ -143,7 +104,6 @@ $checkin_payload = "SANBONGPRO|TICKET:#{$bk['id']}|FIELD:{$bk['fname']}|DATE:{$b
 $checkin_qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" . urlencode($checkin_payload);
 
 $methodLabels = [
-  'wallet'=> 'Thanh toán bằng Ví Nội Bộ Sân Bóng Pro',
   'bank'  => 'Chuyển khoản Ngân hàng VietQR (Napas247)',
   'momo'  => 'Ví điện tử MoMo (Cổng thanh toán Demo)',
   'vnpay' => 'Cổng VNPay QR / Thẻ ATM Nội địa (Demo)',
@@ -312,26 +272,18 @@ include '../includes/header.php';
       <form method="post" style="margin-bottom:20px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <?=csrf_field()?>
         <input type="hidden" name="action" value="change_method">
-        <?php foreach (['wallet'=>'💰 Ví Nội Bộ (' . money((float)($u['wallet_balance'] ?? 0)) . ')','bank'=>'🏦 VietQR Ngân hàng','momo'=>'📱 Ví MoMo','vnpay'=>'💳 Cổng VNPay','cash'=>'💵 Tiền mặt'] as $mk=>$mv): ?>
+        <?php foreach (['bank'=>'🏦 VietQR Ngân hàng','momo'=>'📱 Ví MoMo','vnpay'=>'💳 Cổng VNPay','cash'=>'💵 Tiền mặt'] as $mk=>$mv): ?>
           <button type="submit" name="method" value="<?=$mk?>" class="btn sm <?=$bk['method']===$mk?'':'outline'?>" style="border-radius:999px">
             <?=$mv?>
           </button>
         <?php endforeach; ?>
       </form>
 
-      <?php if ((float)($u['wallet_balance'] ?? 0) >= $amount): ?>
-        <div style="background:#ecfdf5;border:1.5px solid #10b981;border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-          <div style="text-align:left">
-            <b style="color:#065f46;font-size:14px">💰 Số dư Ví nội bộ của bạn (<?=money((float)$u['wallet_balance'])?>) đủ thanh toán đơn này!</b>
-            <small style="margin:2px 0 0;color:#047857">Thanh toán 1 chạm bằng Ví nội bộ & nhận thêm +5 Điểm Uy Tín</small>
-          </div>
-          <form method="post" class="inl">
-            <?=csrf_field()?>
-            <input type="hidden" name="action" value="pay_with_wallet">
-            <button type="submit" class="btn sm">⚡ Trừ Ví & Nhận Vé QR Ngay</button>
-          </form>
-        </div>
-      <?php endif; ?>
+      <?php
+      $feePct  = get_platform_fee_percent();
+      $feeAmt  = (int)round($amount * ($feePct / 100));
+      $ownerNet = max(0, $amount - $feeAmt);
+      ?>
 
       <div style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1.5px solid #86efac;border-radius:16px;padding:22px;margin-bottom:20px">
         <span class="tag green" style="margin-bottom:10px">⏳ Đang chờ thanh toán • Thời gian giữ chỗ: <b id="payTimer">10:00</b></span>
@@ -355,11 +307,11 @@ include '../includes/header.php';
 
         <div style="max-width:420px;margin:0 auto;background:#fff;padding:14px 16px;border-radius:12px;border:1px solid #d1fae5;text-align:left;font-size:13.5px">
           <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-            <span style="color:#64748b">Ngân hàng / Ví nhận:</span>
+            <span style="color:#64748b">Tài khoản Admin thu hộ:</span>
             <b><?=e($bank_id)?> - <?=e($account_no)?></b>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-            <span style="color:#64748b">Chủ tài khoản:</span>
+            <span style="color:#64748b">Đơn vị thụ hưởng (Admin):</span>
             <b><?=e($account_name)?></b>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px">
@@ -381,7 +333,7 @@ include '../includes/header.php';
             <?=csrf_field()?>
             <input type="hidden" name="action" value="simulate_success">
             <button type="submit" class="btn" style="padding:12px 22px;font-size:14.5px">
-              ✅ Giả lập Thanh toán Thành công (1-Click)
+              ✅ Xác nhận Đã Chuyển Khoản về TK Admin (Giả lập 1-Click)
             </button>
           </form>
           <form method="post">
@@ -416,17 +368,6 @@ include '../includes/header.php';
       <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Trạng thái TT:</span><span class="tag <?=$bk['pay_status']==='paid'?'green':'amber'?>"><?=$bk['pay_status']==='paid'?'Đã thanh toán':'Chờ thanh toán'?></span></div>
     </div>
 
-    <?php if ($bk_services): ?>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e2e8f0">
-        <b style="font-size:13.5px;display:block;margin-bottom:8px">🥤 Dịch vụ đi kèm:</b>
-        <?php foreach ($bk_services as $bs): ?>
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-            <span><?=e($bs['name'])?> (x<?=$bs['quantity']?>)</span>
-            <b><?=money($bs['price'] * $bs['quantity'])?></b>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
 
     <div style="margin-top:16px;padding-top:14px;border-top:1.5px dashed #cbd5e1;display:flex;justify-content:space-between;align-items:center">
       <b style="font-size:15px">Tổng cộng:</b>

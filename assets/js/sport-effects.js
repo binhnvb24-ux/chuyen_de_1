@@ -15,73 +15,13 @@
   'use strict';
 
   // ==========================================================================
-  // PHẦN 1: HIỆU ỨNG PHÁO GIẤY CHIẾN THẮNG (HTML5 CANVAS CONFETTI)
+  // PHẦN 1: ĐÃ TẮT HIỆU ỨNG PHÁO HOA / PHÁO GIẤY (GIỮ HÀM NO-OP AN TOÀN)
   // ==========================================================================
   function launchSportConfetti() {
-    var canvas = document.getElementById('sportConfettiCanvas');
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvas.id = 'sportConfettiCanvas';
-      document.body.appendChild(canvas);
+    var oldCanvas = document.getElementById('sportConfettiCanvas');
+    if (oldCanvas && oldCanvas.parentNode) {
+      oldCanvas.parentNode.removeChild(oldCanvas);
     }
-
-    var ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    var colors = ['#22c55e', '#4ade80', '#facc15', '#38bdf8', '#ffffff', '#10b981'];
-    var particles = [];
-
-    for (var i = 0; i < 110; i++) {
-      particles.push({
-        x: canvas.width * (0.2 + Math.random() * 0.6),
-        y: canvas.height * 0.25,
-        vx: (Math.random() - 0.5) * 14,
-        vy: -Math.random() * 12 - 4,
-        size: 6 + Math.random() * 6,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        rot: Math.random() * Math.PI * 2,
-        vRot: (Math.random() - 0.5) * 0.25,
-        alpha: 1
-      });
-    }
-
-    var frame = 0;
-    function render() {
-      frame++;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      var alive = false;
-
-      for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.32;
-        p.vx *= 0.99;
-        p.rot += p.vRot;
-        if (frame > 75) {
-          p.alpha -= 0.022;
-        }
-        if (p.alpha > 0 && p.y < canvas.height + 30) {
-          alive = true;
-          ctx.save();
-          ctx.globalAlpha = Math.max(0, p.alpha);
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.rot);
-          ctx.fillStyle = p.color;
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
-          ctx.restore();
-        }
-      }
-
-      if (alive && frame < 150) {
-        requestAnimationFrame(render);
-      } else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-
-    requestAnimationFrame(render);
   }
 
   window.launchSportConfetti = launchSportConfetti;
@@ -101,14 +41,6 @@
       alertEl.classList.contains('cancel') ||
       alertEl.classList.contains('err') ||
       /hủy|rút khỏi|báo nghỉ/i.test(msg);
-
-    var isCelebration =
-      !isCancel &&
-      /thành công|chốt kèo|giữ chỗ|đăng kèo|xác nhận/i.test(msg);
-
-    if (isCelebration) {
-      launchSportConfetti();
-    }
 
     // Hiển thị Broadcast Scoreboard Toast ở góc trên bên phải
     var toast = document.createElement('div');

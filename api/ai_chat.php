@@ -48,11 +48,20 @@ try {
 // 3. Truy vấn dữ liệu thực tế từ CSDL (Sân bóng, Voucher, Dịch vụ, Khung giờ bận, Đơn của khách)
 $fields = $pdo->query("SELECT * FROM fields WHERE status='active' ORDER BY rating DESC, price_per_hour ASC")->fetchAll();
 $vouchers = $pdo->query("SELECT * FROM vouchers WHERE status='active' AND expired_at >= CURDATE() AND used_count < usage_limit ORDER BY discount_value DESC")->fetchAll();
-$services = $pdo->query("SELECT * FROM services WHERE status='active' ORDER BY price ASC")->fetchAll();
 
 $today = date('Y-m-d');
 $tomorrow = date('Y-m-d', strtotime('+1 day'));
-$busyStmt = $pdo->prepare("SELECT field_id, booking_date, start_time, end_time FROM bookings WHERE booking_date IN (?,?) AND status IN ('pending','confirmed','completed') ORDER BY start_time");
+$busyStmt = $pdo->prepare("
+  SELECT fcm.field_id, b.booking_date, b.start_time, b.end_time
+  FROM field_conflict_map fcm
+  INNER JOIN bookings b ON b.field_id = fcm.conflict_field_id
+  WHERE b.booking_date IN (?,?)
+    AND (
+      b.status IN ('confirmed','completed')
+      OR (b.status = 'pending' AND (b.hold_expires_at IS NULL OR b.hold_expires_at > NOW()))
+    )
+  ORDER BY b.start_time
+");
 $busyStmt->execute([$today, $tomorrow]);
 $busyRows = $busyStmt->fetchAll();
 $busyMap = [];
@@ -84,10 +93,6 @@ if ($apiKey !== '' && function_exists('curl_init')) {
   foreach ($vouchers as $v) {
     $valStr = $v['discount_type']==='percent' ? "{$v['discount_value']}% (tối đa ".money($v['max_discount']).")" : money($v['discount_value']);
     $contextText .= "- Mã {$v['code']}: Giảm {$valStr} cho đơn từ " . money($v['min_order']) . " (Hạn: {$v['expired_at']}).\n";
-  }
-  $contextText .= "Dịch vụ đi kèm: ";
-  foreach ($services as $sv) {
-    $contextText .= "{$sv['name']} (" . money($sv['price']) . "), ";
   }
 
   $payload = [
@@ -157,13 +162,6 @@ if ($reply === '') {
            . "• **Thời gian hủy miễn phí:** Bạn được phép hủy đơn đặt sân trên web trước giờ bóng lăn tối thiểu **2 tiếng**.\n"
            . "• **Hoàn tiền:** Nếu đơn đã thanh toán qua QR/MoMo/VNPay và hủy đúng quy định, trạng thái thanh toán sẽ tự động chuyển sang **Hoàn tiền (Refunded)**.\n"
            . "• Bạn có thể quản lý hoặc hủy đơn dễ dàng tại mục **Lịch đặt của tôi**.";
-  }
-  elseif (preg_match('/(dịch\s*vụ|thuê\s*bóng|áo\s*bib|trọng\s*tài|nước\s*uống|quay\s*video)/u', $lower)) {
-    $reply = "🥤 **Các dịch vụ tiện ích đi kèm khi đặt sân:**\n";
-    foreach ($services as $sv) {
-      $reply .= "• **{$sv['name']}**: " . money($sv['price']) . " — _{$sv['description']}_\n";
-    }
-    $reply .= "\nBạn có thể tích chọn số lượng dịch vụ ngay trong biểu mẫu **Đặt sân**, hệ thống sẽ cộng tự động vào hóa đơn!";
   }
   elseif (preg_match('/(đơn\s*của\s*tôi|lịch\s*của\s*tôi|kiểm\s*tra\s*đơn|đã\s*đặt)/u', $lower)) {
     if (!$u) {
